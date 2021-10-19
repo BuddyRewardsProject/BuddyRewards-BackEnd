@@ -22,8 +22,6 @@ const staffRole = require("./controller/staffRole");
 const { response } = require('express');
 const moment = require('moment');
 
-
-
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(cors());
