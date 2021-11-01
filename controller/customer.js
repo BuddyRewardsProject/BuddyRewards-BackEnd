@@ -42,10 +42,12 @@ exports.getCustomerById = (customerId) => {
     })
 }
 
-exports.getCustomerByEmail = (customerEmail) => {
+exports.getCustomerByEmail = (email) => {
     return new Promise((resolve, reject) => {
         db.query("SELECT * FROM Customer where email = ?",
-        [customerEmail],
+        [
+            email
+        ],
             (err, result) => {
                 if (err) reject(err)
                 resolve(result)

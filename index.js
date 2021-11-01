@@ -21,6 +21,7 @@ const login = require("./controller/login")
 const staffRole = require("./controller/staffRole");
 const { response } = require('express');
 const moment = require('moment');
+const { commit } = require('./model/dbConnection');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -459,19 +460,12 @@ app.get("/merchant/v1/branch/staff/role", authenticatePinToken, (req, res) => {
 })
 
 //Create Customer 
-app.post("/customer/v1/add", async (req, res) => {
+app.post("/customer/v1/register", async (req, res) => {
     var registerData = req.body.data;
     var generate = Math.round(new Date().getTime() / 1000);
-    // var d = new Date();
-    // var date = d.getDate();
-    // var month = d.getMonth() + 1;
-    // var year = d.getFullYear();
-    // var time = d.getTime();
-    // var generate = date + "" + month + "" + year + "" + time;
-
-    // var hash = crypto.createHmac('sha512', process.env.SECRET_KEY)
-    // hash.update(registerData.merchantPassword)
-    // var hasedPassword = hash.digest('hex')
+    var hash = crypto.createHmac('sha512', process.env.SECRET_KEY)
+    hash.update(registerData.customerPassword)
+    var hasedPassword = hash.digest('hex')
 
     if (registerData === '') { //Null check
         var data = {
@@ -487,8 +481,7 @@ app.post("/customer/v1/add", async (req, res) => {
         customerLastName: registerData.customerLastName,
         customerNickName: registerData.customerNickName,
         customerEmail: registerData.customerEmail,
-        // customerPassword: hasedPassword,
-        customerPassword: registerData.customerPassword, //ทำ hash ด้วย
+        customerPassword: hasedPassword,
         customerPhone: registerData.customerPhone,
         customerGender: registerData.customerGender,
         customerDOB: registerData.customerDOB
@@ -512,7 +505,7 @@ app.post("/customer/v1/add", async (req, res) => {
     }
 })
 
-// app.get("/customer/v1/QR"),(req, res) => {
+// app.get("/customer/v1/QR"), authenticateCustomerToken,async (req, res) => {
 //     var customerId = await customer.getCustomerId();
 
 //     let data = {
@@ -532,15 +525,15 @@ app.post("/customer/v1/add", async (req, res) => {
 
 // Customer Login
 app.post("/customer/v1/login", async (req, res) => {
-    var email = req.body.email
-    var password = req.body.password
-    var result = await customer.getCustomerByEmail(email)
+    var email = req.body.email;
+    var hashpassword = req.body.hashpassword;
+    var result = await customer.getCustomerByEmail(email);
 
     if (result.length > 0) {
-        if (result[0].password != password) {
+        if (result[0].password !== hashpassword) {
             var data = {
                 status: "error",
-                errorMessage: "passwordIncollect"
+                errorMessage: "Password is incorrect"
             }
             return functions.responseJson(res, data)
         }
@@ -556,19 +549,19 @@ app.post("/customer/v1/login", async (req, res) => {
         }
         var data = {
             status: "success",
-            customerInfo: customerInfo
+            customerToken: generateCustomerAccessToken(customerInfo)
         }
         return functions.responseJson(res, data)
     } else {
         var data = {
             status: "error",
-            errorMessage: "passwordIncollect"
+            errorMessage: "Username or Password is incorrect"
         }
         return functions.responseJson(res, data)
     }
 })
 
-app.post("/merchant/v1/branch/webpos", async (req, res) => {
+app.post("/merchant/v1/branch/webpos/customerInfo", authenticatePinToken,async (req, res) => {
     var inputData = req.body.data;
     console.log(inputData)
     if (inputData === '') {
@@ -605,6 +598,58 @@ app.post("/merchant/v1/branch/webpos", async (req, res) => {
     }
 })
 
+app.post("/merchant/v1/branch/webpos/rewardPoint", authenticatePinToken,async (req, res) => {
+
+    // var inputData = req.body.data;
+    // console.log(inputData)
+    // if (inputData === '') {
+    //     var data = {
+    //         status: "error",
+    //         errorMessage: "inputData = Null"
+    //     }
+    //     return functions.responseJson(res, data)
+    // } else {
+    //     var user = await customer.getCustomerById(inputData.customerId)
+    //     console.log(user[0].email)
+    //     if (user.length > 0) {
+    //         var customerInfo = {
+    //             customerId: user[0].customer_id,
+    //             customerNickName: user[0].nick_name,
+    //             customerFirstName: user[0].first_name,
+    //             customerPhone:user[0].phone,
+    //             customerLastName: user[0].last_name,
+    //             customerEmail: user[0].email,
+    //             customerDOB: moment(user[0].date_of_birth).format('DD/MM/YYYY')
+    //         }
+    //         var data = {
+    //             status: "success",
+    //             customerInfo: customerInfo
+    //         }
+    //         return functions.responseJson(res, data)
+    //     } else {
+    //         var data = {
+    //             status: "error",
+    //             errorMessage: "Error"
+    //         }
+    //         return functions.responseJson(res, data)
+    //     }
+    // }
+})
+
+app.post("/customer/v1/home", authenticateCustomerToken, async (req, res) => {
+    var email = req.body.email;
+    var authHeader = req.headers['authorization']
+    var token = authHeader && authHeader.split(' ')[1]
+    if (token == null) return res.sendStatus(401)
+    var customerInfo = await customer.getCustomerByEmail(email);
+
+    var data = {
+        status: "sucess",
+        customerInfo: customerInfo
+    }
+    return functions.responseJson(res, data)
+})
+
 app.listen(process.env.PORT, () => {
     console.log('Server is running on port 3001');
 })
@@ -614,6 +659,9 @@ function generateAccessToken(user) {
 }
 function generatePinToken(user) {
     return jwt.sign(user, process.env.JWT_PIN_SECRET, { expiresIn: '1800s' });
+}
+function generateCustomerAccessToken(user) {
+    return jwt.sign(user, process.env.JWT_CUSTOMER_SECRET, { expiresIn: '1800s' });
 }
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization']
@@ -638,6 +686,22 @@ function authenticatePinToken(req, res, next) {
     if (token == null) return res.sendStatus(401)
 
     jwt.verify(token, process.env.JWT_PIN_SECRET, (err, user) => {
+        console.log(err)
+
+        if (err) return res.sendStatus(403)
+
+        req.user = user
+
+        next()
+    })
+}
+function authenticateCustomerToken(req, res, next) {
+    const authHeader = req.headers['authorization']
+    const token = authHeader && authHeader.split(' ')[1]
+
+    if (token == null) return res.sendStatus(401)
+    console.log(token)
+    jwt.verify(token, process.env.JWT_CUSTOMER_SECRET, (err, user) => {
         console.log(err)
 
         if (err) return res.sendStatus(403)
