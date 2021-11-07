@@ -662,9 +662,10 @@ app.get("/customer/v1/accCheck", async (req, res) => {
     if (result.length > 0) {
         if (result[0].customerLineContext !== lineContext) {
             var data = {
-                status: "none"
+                status: "none",
+                errorMessage: "none" 
             }
-            return functions.responseJson(res, data) //login เลย
+            return functions.responseJson(res, data)
         }
     }
 
