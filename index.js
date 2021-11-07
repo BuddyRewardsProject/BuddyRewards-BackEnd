@@ -526,7 +526,7 @@ app.post("/customer/v1/register", async (req, res) => {
 // Customer Login
 app.post("/customer/v1/login", async (req, res) => {
     var email = req.body.email;
-    var hashpassword = req.body.hashpassword;
+    var hashpassword = req.body.hashpassword; 
     var result = await customer.getCustomerByEmail(email);
 
     if (result.length > 0) {
@@ -547,6 +547,7 @@ app.post("/customer/v1/login", async (req, res) => {
             customerGender: result[0].gender,
             customerDOB: result[0].date_of_birth
         }
+
         var data = {
             status: "success",
             customerToken: generateCustomerAccessToken(customerInfo)
@@ -648,6 +649,25 @@ app.post("/customer/v1/home", authenticateCustomerToken, async (req, res) => {
         customerInfo: customerInfo
     }
     return functions.responseJson(res, data)
+})
+
+app.get("/customer/v1/accCheck", async (req, res) => {
+    var lineContext = req.body.accessToken;
+    var result = await customer.getCustomerLineContext(lineContext);
+
+    var result = {
+        customerLineContext: result[0].line_context
+    }
+
+    if (result.length > 0) {
+        if (result[0].customerLineContext !== lineContext) {
+            var data = {
+                status: "none"
+            }
+            return functions.responseJson(res, data) //login เลย
+        }
+    }
+
 })
 
 app.listen(process.env.PORT, () => {

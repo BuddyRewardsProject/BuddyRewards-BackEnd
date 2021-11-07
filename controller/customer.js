@@ -54,3 +54,16 @@ exports.getCustomerByEmail = (email) => {
             });
     })
 }
+
+exports.getCustomerLineContext = (line_context) => {
+    return new Promise((resolve, reject) => {
+        db.query("SELECT line_context FROM Customer where line_context = ?",
+        [
+            line_context
+        ],
+            (err, result) => {
+                if (err) reject(err)
+                resolve(result)
+            });
+    })
+}
