@@ -1,6 +1,5 @@
 const express = require("express");
 const app = express();
-const db = require("./model/dbConnection");
 const cors = require("cors");
 const path = require("path");
 const bodyParser = require("body-parser");
@@ -19,36 +18,18 @@ const staff = require("./controller/staff");
 const customer = require("./controller/customer");
 const login = require("./controller/login");
 const staffRole = require("./controller/staffRole");
+const formula = require("./controller/formula");
 const { response } = require("express");
 const moment = require("moment");
+require('moment-timezone');
 const { commit } = require("./model/dbConnection");
 const { json } = require("body-parser");
+const point = require("./controller/point");
 
 app.use(bodyParser.urlencoded({ extended: false }));
-
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
-// app.get('/', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'public', 'index.html'));
-// })
-app.get("/home", (req, res) => {
-  db.query("SELECT * FROM Merchant", (err, result) => {
-    if (err) {
-      console.log(err);
-    } else {
-      var results = {
-        merchantId: result[0].merchant_id,
-        merchantName: result[0].merchant_name,
-      };
-      var data = {
-        results: results,
-        statusCode: 200,
-      };
-      return functions.responseJson(res, data);
-    }
-  });
-});
 
 //Merchant Login
 app.post("/merchant/v1/login", async (req, res) => {
@@ -74,7 +55,6 @@ app.post("/merchant/v1/login", async (req, res) => {
       districtId: result[0].district_id,
       merchantId: result[0].merchant_id,
     };
-    console.log(result[0]);
     var data = {
       status: "success",
       accessToken: generateAccessToken(user),
@@ -142,10 +122,7 @@ app.post("/merchant/v1/login/pin", authenticateToken, async (req, res) => {
   }
 });
 
-app.post(
-  "/merchant/v1/login/pin/check",
-  authenticateToken,
-  async (req, res) => {
+app.post("/merchant/v1/login/pin/check", authenticateToken, async (req, res) => {
     var branchId = req.body.branchId;
     var user = await staff.getStaffByBranchId(branchId);
 
@@ -178,6 +155,7 @@ app.post("/merchant/v1/register", async (req, res) => {
   var hash = crypto.createHmac("sha512", process.env.SECRET_KEY);
   hash.update(registerData.merchantPassword);
   var hasedPassword = hash.digest("hex");
+  var genFormulaId = generate
 
   if (registerData.merchantName === "") {
     var data = {
@@ -190,6 +168,7 @@ app.post("/merchant/v1/register", async (req, res) => {
     merchantId: generate,
     merchantName: registerData.merchantName,
     rewardType: registerData.rewardType,
+    formulaId: genFormulaId
   };
   var branchInfo = {
     branchName: registerData.branchName,
@@ -200,12 +179,16 @@ app.post("/merchant/v1/register", async (req, res) => {
     districtId: registerData.districtName,
     merchantId: generate,
   };
+  var formulaInfo = {
+    formulaId: genFormulaId,
+    divider: registerData.divider,
+  };
   try {
+    var formulaState = await formula.addFormula(formulaInfo);
     var merchantState = await merchant.addMerchant(merchantInfo);
-    //console.log(merchantState)
     var branchState = await branch.addBranch(branchInfo);
-    //console.log(branchState)
-    if (merchantState.affectedRows === 1 && branchState.affectedRows === 1) {
+    
+    if (merchantState.affectedRows === 1 && branchState.affectedRows === 1 && formulaState.affectedRows === 1) {
       var staffInfo = {
         staffId: generate,
         firstName: registerData.ownerFirstName,
@@ -232,10 +215,7 @@ app.post("/merchant/v1/register", async (req, res) => {
   }
 });
 
-app.post(
-  "/merchant/v1/branch/branchmanagement/add",
-  authenticatePinToken,
-  async (req, res) => {
+app.post("/merchant/v1/branch/branchmanagement/add", authenticatePinToken, async (req, res) => {
     var registerData = req.body.data;
     var generate = Math.round(new Date().getTime() / 1000);
     var hash = crypto.createHmac("sha512", process.env.SECRET_KEY);
@@ -307,10 +287,7 @@ app.post(
 );
 
 //add staff in branch
-app.post(
-  "/merchant/v1/branch/staff/add",
-  authenticatePinToken,
-  async (req, res) => {
+app.post("/merchant/v1/branch/staff/add", authenticatePinToken, async (req, res) => {
     var authHeader = req.headers["authorization"];
     var token = authHeader && authHeader.split(" ")[1];
 
@@ -361,10 +338,7 @@ app.post(
   }
 );
 
-app.post(
-  "/merchant/v1/branch/staff/remove",
-  authenticatePinToken,
-  async (req, res) => {
+app.post("/merchant/v1/branch/staff/remove", authenticatePinToken, async (req, res) => {
     var authHeader = req.headers["authorization"];
     var token = authHeader && authHeader.split(" ")[1];
 
@@ -380,11 +354,8 @@ app.post(
     }
 
     var staffId = req.body.staffId;
-    console.log(req.body);
     try {
-      console.log(staffId);
       var staffState = await staff.removeStaffManagement(staffId);
-      console.log(staffState);
       if (staffState.affectedRows === 1) {
         var data = {
           status: "success",
@@ -392,7 +363,6 @@ app.post(
         return functions.responseJson(res, data);
       }
     } catch (error) {
-      console.log(error);
       var data = {
         status: "error",
         errorMessage: "Conflict",
@@ -513,7 +483,6 @@ app.post("/customer/v1/register", async (req, res) => {
   request(options, async function (error, response) {
     if (error) throw new Error(error);
     var user = JSON.parse(response.body);
-    console.log("fffffffffffffffffff ",user)
     var customerInfo = {
       customerId: generate,
       customerFirstName: registerData.customerFirstName,
@@ -564,6 +533,7 @@ app.post("/customer/v1/register", async (req, res) => {
 //         functions.responseJson(res, data)
 //     })
 // }
+
 app.post("/customer/v1/liff", async (req, res) => {
   var token = req.body.accessToken;
   //console.log(token)
@@ -579,12 +549,9 @@ app.post("/customer/v1/liff", async (req, res) => {
     if (error) throw new Error(error);
     var user = JSON.parse(response.body);
     //console.log("userId > " + user.userId);
-
     //console.log("dislayName > " + user.displayName);
-
     var result = await customer.getCustomerIdByLineId(user.userId);
 
-    console.log(result);
     if (result.length === 0) {
       var data = {
         status: "error",
@@ -617,6 +584,7 @@ app.post("/customer/v1/liff", async (req, res) => {
   //var result = await customer.getCustomerIdByLineId(token);
   //console.log(result)
 });
+
 // Customer Login
 app.post("/customer/v1/login", async (req, res) => {
   var email = req.body.email;
@@ -662,7 +630,6 @@ app.post(
   authenticatePinToken,
   async (req, res) => {
     var inputData = req.body.data;
-    console.log(inputData);
     if (inputData === "") {
       var data = {
         status: "error",
@@ -671,7 +638,6 @@ app.post(
       return functions.responseJson(res, data);
     } else {
       var user = await customer.getCustomerById(inputData.customerId);
-      console.log(user[0].email);
       if (user.length > 0) {
         var customerInfo = {
           customerId: user[0].customer_id,
@@ -698,46 +664,73 @@ app.post(
   }
 );
 
-app.post(
-  "/merchant/v1/branch/webpos/rewardPoint",
-  authenticatePinToken,
-  async (req, res) => {
-    // var inputData = req.body.data;
-    // console.log(inputData)
-    // if (inputData === '') {
-    //     var data = {
-    //         status: "error",
-    //         errorMessage: "inputData = Null"
-    //     }
-    //     return functions.responseJson(res, data)
-    // } else {
-    //     var user = await customer.getCustomerById(inputData.customerId)
-    //     console.log(user[0].email)
-    //     if (user.length > 0) {
-    //         var customerInfo = {
-    //             customerId: user[0].customer_id,
-    //             customerNickName: user[0].nick_name,
-    //             customerFirstName: user[0].first_name,
-    //             customerPhone:user[0].phone,
-    //             customerLastName: user[0].last_name,
-    //             customerEmail: user[0].email,
-    //             customerDOB: moment(user[0].date_of_birth).format('DD/MM/YYYY')
-    //         }
-    //         var data = {
-    //             status: "success",
-    //             customerInfo: customerInfo
-    //         }
-    //         return functions.responseJson(res, data)
-    //     } else {
-    //         var data = {
-    //             status: "error",
-    //             errorMessage: "Error"
-    //         }
-    //         return functions.responseJson(res, data)
-    //     }
-    // }
+app.post("/merchant/v1/calculate", async (req,res) => {
+  var price = req.body.data.price
+  var merchantId = req.body.data.merchantId
+  var merchantInfo = await merchant.getMerchantById(merchantId)
+  var formulaInfo = await formula.getFormulaById(merchantInfo[0].formula_id)
+  var divider = formulaInfo[0].divider
+
+  var data = {
+    status: "success",
+    resultPoint: price / divider
+  };
+  return functions.responseJson(res, data);
+});
+
+app.post("/merchant/v1/totalPoint", async (req,res) => {
+  var info = {
+    customerId: req.body.data.customerId,
+    merchantId: req.body.data.merchantId
   }
-);
+  var customerPoint = await point.getTotalPoint(info)
+  console.log(customerPoint)
+  if(customerPoint.length === 0){
+    var data = {
+      status: "error",
+      errorMessage: "Null",
+    };
+    return functions.responseJson(res, data);
+  }
+  var data = {
+    status: "success",
+    customerPoint: customerPoint[0].result
+  };
+  return functions.responseJson(res, data);
+});
+
+app.post("/merchant/v1/addPoint", authenticatePinToken, async (req,res) => {
+  var authHeader = req.headers["authorization"];
+  var token = authHeader && authHeader.split(" ")[1];
+  if (token == null) return res.sendStatus(401);
+  var decode = jwt.decode(token);
+  var rewardData = req.body.data
+  var pointData = {
+    point: rewardData.point,
+    pointStatus: "reward",
+    timeStamp:  moment().tz("Asia/Bangkok").format(),
+    branchId: decode.branchId,
+    customerId: rewardData.customerId
+  }
+  console.log(pointData)
+  try {
+    var pointState = await point.addPoint(pointData)
+    console.log(pointState)
+    if (pointState.affectedRows === 1) {
+      var data = {
+        status: "success",
+      };
+      return functions.responseJson(res, data);
+    }
+  } catch (error) {
+    console.log(error)
+    var data = {
+      status: "error",
+      errorMessage: "Conflict",
+    };
+    return functions.responseJson(res, data);
+  }
+});
 
 app.post("/customer/v1/home", authenticateCustomerToken, async (req, res) => {
   var email = req.body.email;
