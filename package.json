@@ -17,7 +17,6 @@
     "moment-timezone": "^0.5.34",
     "mysql": "^2.18.1",
     "nodemon": "^2.0.14",
-    "qrcode": "^1.4.4",
     "request": "^2.88.2"
   },
   "devDependencies": {},

@@ -2,14 +2,15 @@ const db = require('../model/dbConnection');
 
 exports.addPoint = (point) => {
     return new Promise((resolve, reject) => {
-        db.query("INSERT INTO Point (point_id, point, point_status, time_stamp, branch_id, customer_id) VALUES (?,?,?,?,?,?)", 
+        db.query("INSERT INTO Point (point_id, point, point_status, time_stamp, branch_id, customer_id, staff_id) VALUES (?,?,?,?,?,?,?)", 
         [
             point.pointId,
             point.point,
             point.pointStatus,
             point.timeStamp,
             point.branchId,
-            point.customerId
+            point.customerId,
+            point.staffId
         ], (err, result) => {
             if (err) reject(err)
             resolve(result)
@@ -29,7 +30,7 @@ exports.getPointByCustomerId = (customerId) => {
     })
 }
 
-exports.getPointByBranchId = (customerId) => {
+exports.getPointByBranchId = () => {
     return new Promise((resolve, reject) => {
         db.query("SELECT * FROM Point where branch_id = ?", 
         [
@@ -56,6 +57,22 @@ exports.getTotalPoint = (totalPoint) => {
             totalPoint.merchantId,
             totalPoint.customerId,
             totalPoint.merchantId
+        ], (err, result) => {
+            if (err) reject(err)
+            resolve(result)
+        });
+    })
+}
+
+exports.getPointHistory = (branchId) => {
+    return new Promise((resolve, reject) => {
+        db.query(`select * from Customer c
+        join Point p on c.customer_id = p.customer_id
+        join Branch b on p.branch_id = b.branch_id
+        join Staff s on p.staff_id = s.staff_id
+        where p.branch_id = ?;`
+        ,[
+            branchId
         ], (err, result) => {
             if (err) reject(err)
             resolve(result)
