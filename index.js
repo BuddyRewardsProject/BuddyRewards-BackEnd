@@ -18,11 +18,8 @@ const customer = require("./controller/customer");
 const login = require("./controller/login");
 const staffRole = require("./controller/staffRole");
 const formula = require("./controller/formula");
-const { response } = require("express");
 const moment = require("moment");
 require('moment-timezone');
-const { commit } = require("./model/dbConnection");
-const { json } = require("body-parser");
 const point = require("./controller/point");
 
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -81,7 +78,6 @@ app.post("/merchant/v1/login/pin", authenticateToken, async (req, res) => {
     branchId: decode.branchId,
   };
   var user = await staff.getStaffByPin(data);
-
   if (user.length > 0) {
     if (user[0].branch_id !== decode.branchId) {
       var data = {
@@ -220,7 +216,6 @@ app.post("/merchant/v1/branch/branchmanagement/add", authenticatePinToken, async
   var hash = crypto.createHmac("sha512", process.env.SECRET_KEY);
   hash.update(registerData.merchantPassword);
   var hasedPassword = hash.digest("hex");
-
   var authHeader = req.headers["authorization"];
   var token = authHeader && authHeader.split(" ")[1];
 
@@ -252,7 +247,6 @@ app.post("/merchant/v1/branch/branchmanagement/add", authenticatePinToken, async
     var branchState = await branch.addBranch(branchInfo);
     if (branchState.affectedRows === 1) {
       var staffInfo = {
-        //staffId: decode.staffId,
         staffId: generate,
         firstName: decode.firstName,
         lastName: decode.lastName,
@@ -453,196 +447,40 @@ app.get("/merchant/v1/branch/staff/role", authenticatePinToken, (req, res) => {
     });
 });
 
-//Create Customer
-app.post("/customer/v1/register", async (req, res) => {
-  var registerData = req.body.data;
-  var generate = Math.round(new Date().getTime() / 1000);
-  var hash = crypto.createHmac("sha512", process.env.SECRET_KEY);
-  hash.update(registerData.customerPassword);
-  var hasedPassword = hash.digest("hex");
-
-  if (registerData === "") {
-    //Null check
+app.post("/merchant/v1/branch/webpos/customerInfo", authenticatePinToken, async (req, res) => {
+  var inputData = req.body.data;
+  if (inputData === "") {
     var data = {
       status: "error",
-      errorMessage: "registerData=Null",
-    };
-    return functions.responseJson(res, data);
-  }
-  var token = registerData.customerToken;
-  //console.log(token)
-
-  var options = {
-    method: "GET",
-    url: "https://api.line.me/v2/profile",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  };
-  request(options, async function (error, response) {
-    if (error) throw new Error(error);
-    var user = JSON.parse(response.body);
-    var customerInfo = {
-      customerId: generate,
-      customerFirstName: registerData.customerFirstName,
-      customerLastName: registerData.customerLastName,
-      customerNickName: registerData.customerNickName,
-      customerEmail: registerData.customerEmail,
-      customerPassword: hasedPassword,
-      customerPhone: registerData.customerPhone,
-      customerGender: registerData.customerGender,
-      customerDOB: registerData.customerDOB,
-      lineId: user.userId,
-      pictureUrl: user.pictureUrl
-    };
-
-    try {
-      var customerState = await customer.addCustomer(customerInfo); //console.log(customerState)
-
-      if (customerState.affectedRows === 1) {
-        var data = {
-          status: "success",
-        };
-        return functions.responseJson(res, data);
-      }
-    } catch (error) {
-      var data = {
-        status: "error",
-        errorMessage: "unsuccessAddCustomer",
-      };
-      return functions.responseJson(res, data);
-    }
-  });
-});
-
-app.post("/customer/v1/liff", async (req, res) => {
-  var token = req.body.accessToken;
-  //console.log(token)
-
-  var options = {
-    method: "GET",
-    url: "https://api.line.me/v2/profile",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  };
-  request(options, async function (error, response) {
-    if (error) throw new Error(error);
-    var user = JSON.parse(response.body);
-    //console.log("userId > " + user.userId);
-    //console.log("dislayName > " + user.displayName);
-    var result = await customer.getCustomerIdByLineId(user.userId);
-
-    if (result.length === 0) {
-      var data = {
-        status: "error",
-        redirect: "/customer/register",
-      };
-      return functions.responseJson(res, data);
-    }
-    var customerInfo = {
-      customerId: result[0].customer_id,
-      customerFirstName: result[0].first_name,
-      customerLastName: result[0].last_name,
-      customerNickName: result[0].nick_name,
-      customerEmail: result[0].email,
-      customerPhone: result[0].phone,
-      customerGender: result[0].gender,
-      customerDOB: result[0].date_of_birth,
-      customerPic: result[0].picture_url
-    };
-
-    var data = {
-      status: "success",
-      customerToken: generateCustomerAccessToken(customerInfo),
-    };
-    return functions.responseJson(res, data);
-
-    //var result = JSON.parse(response.body).userId;
-    //console.log('consloe'+result)
-  });
-
-  //var result = await customer.getCustomerIdByLineId(token);
-  //console.log(result)
-});
-
-// Customer Login
-app.post("/customer/v1/login", async (req, res) => {
-  var email = req.body.email;
-  var hashpassword = req.body.hashpassword;
-  var result = await customer.getCustomerByEmail(email);
-
-  if (result.length > 0) {
-    if (result[0].password !== hashpassword) {
-      var data = {
-        status: "error",
-        errorMessage: "Password is incorrect",
-      };
-      return functions.responseJson(res, data);
-    }
-    var customerInfo = {
-      customerId: result[0].customer_id,
-      customerFirstName: result[0].first_name,
-      customerLastName: result[0].last_name,
-      customerNickName: result[0].nick_name,
-      customerEmail: result[0].email,
-      customerPhone: result[0].phone,
-      customerGender: result[0].gender,
-      customerDOB: result[0].date_of_birth,
-      customerPic: result[0].picture_url
-    };
-
-    var data = {
-      status: "success",
-      customerToken: generateCustomerAccessToken(customerInfo),
+      errorMessage: "inputData = Null",
     };
     return functions.responseJson(res, data);
   } else {
-    var data = {
-      status: "error",
-      errorMessage: "Username or Password is incorrect",
-    };
-    return functions.responseJson(res, data);
-  }
-});
-
-app.post(
-  "/merchant/v1/branch/webpos/customerInfo",
-  authenticatePinToken,
-  async (req, res) => {
-    var inputData = req.body.data;
-    if (inputData === "") {
+    var user = await customer.getCustomerById(inputData.customerId);
+    if (user.length > 0) {
+      var customerInfo = {
+        customerId: user[0].customer_id,
+        customerNickName: user[0].nick_name,
+        customerFirstName: user[0].first_name,
+        customerPhone: user[0].phone,
+        customerLastName: user[0].last_name,
+        customerEmail: user[0].email,
+        customerDOB: moment(user[0].date_of_birth).format("DD/MM/YYYY"),
+      };
       var data = {
-        status: "error",
-        errorMessage: "inputData = Null",
+        status: "success",
+        customerInfo: customerInfo,
       };
       return functions.responseJson(res, data);
     } else {
-      var user = await customer.getCustomerById(inputData.customerId);
-      if (user.length > 0) {
-        var customerInfo = {
-          customerId: user[0].customer_id,
-          customerNickName: user[0].nick_name,
-          customerFirstName: user[0].first_name,
-          customerPhone: user[0].phone,
-          customerLastName: user[0].last_name,
-          customerEmail: user[0].email,
-          customerDOB: moment(user[0].date_of_birth).format("DD/MM/YYYY"),
-        };
-        var data = {
-          status: "success",
-          customerInfo: customerInfo,
-        };
-        return functions.responseJson(res, data);
-      } else {
-        var data = {
-          status: "error",
-          errorMessage: "Error",
-        };
-        return functions.responseJson(res, data);
-      }
+      var data = {
+        status: "error",
+        errorMessage: "Error",
+      };
+      return functions.responseJson(res, data);
     }
   }
+}
 );
 
 app.post("/merchant/v1/calculate", async (req, res) => {
@@ -686,9 +524,8 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
   var token = authHeader && authHeader.split(" ")[1];
   if (token == null) return res.sendStatus(401);
   var decode = jwt.decode(token);
-  //console.log(decode)
   var rewardData = req.body.data
-  console.log(rewardData)
+
   var pointData = {
     point: rewardData.point,
     pointStatus: "reward",
@@ -697,13 +534,6 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
     customerId: rewardData.customerId,
     staffId: decode.staffId
   }
-  var merchantData = {
-    merchantId: rewardData.merchantId,
-    //merchantName: jwt.decode(rewardData.branchToken).merchantName
-  }
-  //console.log(merchantData)
-  //console.log(branchData)
-
   try {
     var pointState = await point.addPoint(pointData)
 
@@ -714,7 +544,6 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
       //message
       var user = await customer.getCustomerById(rewardData.customerId)
       var merchantInfo = await merchant.getMerchantById(rewardData.merchantId)
-      console.log(merchantInfo)
       var branchInfo = await branch.getBranchById(rewardData.branchId)
       var request = require('request');
       var options = {
@@ -729,7 +558,7 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
           messages: [
             {
               type: "flex",
-              altText: "คุณได้รับ" + rewardData.point+  "แต้ม จาก ชาพะยอม บางพรม",   //เปลี่ยน
+              altText: "คุณได้รับ " + rewardData.point + " แต้ม จาก " + `${merchantInfo[0].merchant_name}` + " " + `${branchInfo[0].branch_name}`,   //เปลี่ยน
               contents: {
                 type: "bubble",
                 size: "kilo",
@@ -768,7 +597,7 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
                       contents: [
                         {
                           type: "text",
-                          text: rewardData.point + "แต้ม",    //เปลี่ยน
+                          text: rewardData.point + " แต้ม",    //เปลี่ยน
                           weight: "bold",
                           size: "3xl",
                           align: "start",
@@ -786,7 +615,7 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
                           contents: [
                             {
                               type: "text",
-                              text: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm"),    //เปลี่ยน
+                              text: moment().tz("Asia/Bangkok").format("DD/MM/YYYY HH:mm"),    //เปลี่ยน
                               size: "sm",
                               color: "#949494FF",
                               align: "start",
@@ -885,6 +714,21 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
   }
 });
 
+//-------------------------------------------- History -----------------------------------------
+app.post("/merchant/v1/pointHistory", async (req, res) => {
+  var branchId = req.body.branchId;
+  var pointList = await point.getPointHistory(branchId);
+  console.log(branchId)
+  var data = {
+    status: "sucess",
+    pointList: pointList
+  };
+  console.log(data)
+  console.log(pointList)
+  return functions.responseJson(res, data);
+});
+
+//-------------------------------------------- Customer -----------------------------------------
 app.post("/customer/v1/home", authenticateCustomerToken, async (req, res) => {
   var email = req.body.email;
   var authHeader = req.headers["authorization"];
@@ -918,24 +762,150 @@ app.get("/customer/v1/accCheck", async (req, res) => {
   }
 });
 
-app.post("/customer/v1/message", async (req, res) => {
+//Create Customer
+app.post("/customer/v1/register", async (req, res) => {
+  var registerData = req.body.data;
+  var generate = Math.round(new Date().getTime() / 1000);
+  var hash = crypto.createHmac("sha512", process.env.SECRET_KEY);
+  hash.update(registerData.customerPassword);
+  var hasedPassword = hash.digest("hex");
 
-});
+  if (registerData === "") {
+    //Null check
+    var data = {
+      status: "error",
+      errorMessage: "registerData=Null",
+    };
+    return functions.responseJson(res, data);
+  }
+  var token = registerData.customerToken;
+  //console.log(token)
 
-//----------------------------------------- History --------------------------------------
-app.post("/merchant/v1/pointHistory", async (req, res) => {
-  var branchId = req.body.branchId;
-  var pointList = await point.getPointHistory(branchId);
-  console.log(branchId)
-  var data = {
-    status: "sucess",
-    pointList: pointList
+  var options = {
+    method: "GET",
+    url: "https://api.line.me/v2/profile",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   };
-  console.log(data)
-  console.log(pointList)
-  return functions.responseJson(res, data);
+  request(options, async function (error, response) {
+    if (error) throw new Error(error);
+    var user = JSON.parse(response.body);
+    var customerInfo = {
+      customerId: generate,
+      customerFirstName: registerData.customerFirstName,
+      customerLastName: registerData.customerLastName,
+      customerNickName: registerData.customerNickName,
+      customerEmail: registerData.customerEmail,
+      customerPassword: hasedPassword,
+      customerPhone: registerData.customerPhone,
+      customerGender: registerData.customerGender,
+      customerDOB: registerData.customerDOB,
+      lineId: user.userId,
+      pictureUrl: user.pictureUrl
+    };
+
+    try {
+      var customerState = await customer.addCustomer(customerInfo); //console.log(customerState)
+
+      if (customerState.affectedRows === 1) {
+        var data = {
+          status: "success",
+        };
+        return functions.responseJson(res, data);
+      }
+    } catch (error) {
+      var data = {
+        status: "error",
+        errorMessage: "unsuccessAddCustomer",
+      };
+      return functions.responseJson(res, data);
+    }
+  });
 });
 
+app.post("/customer/v1/liff", async (req, res) => {
+  var token = req.body.accessToken;
+  var options = {
+    method: "GET",
+    url: "https://api.line.me/v2/profile",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+  request(options, async function (error, response) {
+    if (error) throw new Error(error);
+    var user = JSON.parse(response.body);
+    var result = await customer.getCustomerIdByLineId(user.userId);
+
+    if (result.length === 0) {
+      var data = {
+        status: "error",
+        redirect: "/customer/register",
+      };
+      return functions.responseJson(res, data);
+    }
+    var customerInfo = {
+      customerId: result[0].customer_id,
+      customerFirstName: result[0].first_name,
+      customerLastName: result[0].last_name,
+      customerNickName: result[0].nick_name,
+      customerEmail: result[0].email,
+      customerPhone: result[0].phone,
+      customerGender: result[0].gender,
+      customerDOB: result[0].date_of_birth,
+      customerPic: result[0].picture_url
+    };
+    var data = {
+      status: "success",
+      customerToken: generateCustomerAccessToken(customerInfo),
+    };
+    return functions.responseJson(res, data);
+  });
+});
+
+// Customer Login
+app.post("/customer/v1/login", async (req, res) => {
+  var email = req.body.email;
+  var hashpassword = req.body.hashpassword;
+  var result = await customer.getCustomerByEmail(email);
+
+  if (result.length > 0) {
+    if (result[0].password !== hashpassword) {
+      var data = {
+        status: "error",
+        errorMessage: "Password is incorrect",
+      };
+      return functions.responseJson(res, data);
+    }
+    var customerInfo = {
+      customerId: result[0].customer_id,
+      customerFirstName: result[0].first_name,
+      customerLastName: result[0].last_name,
+      customerNickName: result[0].nick_name,
+      customerEmail: result[0].email,
+      customerPhone: result[0].phone,
+      customerGender: result[0].gender,
+      customerDOB: result[0].date_of_birth,
+      customerPic: result[0].picture_url
+    };
+
+    var data = {
+      status: "success",
+      customerToken: generateCustomerAccessToken(customerInfo),
+    };
+    return functions.responseJson(res, data);
+  } else {
+    var data = {
+      status: "error",
+      errorMessage: "Username or Password is incorrect",
+    };
+    return functions.responseJson(res, data);
+  }
+});
+
+
+//----------------------------------------- Server/Token --------------------------------------
 app.listen(process.env.PORT, () => {
   console.log("Server is running on port 3001");
 });
