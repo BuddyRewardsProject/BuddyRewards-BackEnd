@@ -50,6 +50,7 @@ app.post("/merchant/v1/login", async (req, res) => {
       masterAccount: result[0].master_account,
       districtId: result[0].district_id,
       merchantId: result[0].merchant_id,
+      merchantName: result[0].merchant_name,
     };
     var data = {
       status: "success",
