@@ -18,6 +18,7 @@ const customer = require("./controller/customer");
 const login = require("./controller/login");
 const staffRole = require("./controller/staffRole");
 const formula = require("./controller/formula");
+const prize = require("./controller/prize");
 const moment = require("moment");
 require('moment-timezone');
 const point = require("./controller/point");
@@ -448,6 +449,7 @@ app.get("/merchant/v1/branch/staff/role", authenticatePinToken, (req, res) => {
     });
 });
 
+//---------------------------------------- Reward Point System ----------------------------------------
 app.post("/merchant/v1/branch/webpos/customerInfo", authenticatePinToken, async (req, res) => {
   var inputData = req.body.data;
   if (inputData === "") {
@@ -715,8 +717,58 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
   }
 });
 
+//-------------------------------------------- Redeem Point System ----------------------------------------
+app.post("/merchant/v1/createPrize", authenticatePinToken, async (req,res) => {
+  var authHeader = req.headers["authorization"];
+  var token = authHeader && authHeader.split(" ")[1];
+
+  if (token == null) return res.sendStatus(401);
+  var decode = jwt.decode(token);
+
+  if (decode.roleId !== undefined && decode.roleId === 3) {
+    var data = {
+      status: "error",
+      errorMessage: "Do not have permittion",
+    };
+    return functions.responseJson(res, data);
+  }
+  var prizeData = req.body.data;
+  if (prizeData.prizeName === "") {
+    var data = {
+      status: "error",
+      errorMessage: "Empty",
+    };
+    return functions.responseJson(res, data);
+  }
+  var prizeInfo = {
+    prizeName: prizeData.prizeName,
+    prizeDetail: prizeData.prizeDetail,
+    prizePointCost: prizeData.prizePointCost,
+    branchId: prizeData.branchId                       //Waiting for testing
+  };
+  try {
+    var prizeState = await prize.addPrize(prizeInfo);
+    if (prizeState.affectedRows === 1) {
+      var data = {
+        status: "success",
+      };
+      return functions.responseJson(res, data);
+    }
+  } catch (error) {
+    var data = {
+      status: "error",
+      errorMessage: "Conflict",
+    };
+    return functions.responseJson(res, data);
+  }
+});
+
+app.post("/merchant/v1/prizeInit", authenticatePinToken, async (req,res) => {
+
+});
+
 //-------------------------------------------- History -----------------------------------------
-app.post("/merchant/v1/pointHistory", async (req, res) => {
+app.post("/merchant/v1/pointHistory", authenticatePinToken,async (req, res) => {
   var branchId = req.body.branchId;
   var pointList = await point.getPointHistory(branchId);
   console.log(branchId)
