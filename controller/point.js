@@ -2,43 +2,43 @@ const db = require('../model/dbConnection');
 
 exports.addPoint = (point) => {
     return new Promise((resolve, reject) => {
-        db.query("INSERT INTO Point (point_id, point, point_status, time_stamp, branch_id, customer_id, staff_id) VALUES (?,?,?,?,?,?,?)", 
-        [
-            point.pointId,
-            point.point,
-            point.pointStatus,
-            point.timeStamp,
-            point.branchId,
-            point.customerId,
-            point.staffId
-        ], (err, result) => {
-            if (err) reject(err)
-            resolve(result)
-        });
+        db.query("INSERT INTO Point (point_id, point, point_status, time_stamp, branch_id, customer_id, staff_id) VALUES (?,?,?,?,?,?,?)",
+            [
+                point.pointId,
+                point.point,
+                point.pointStatus,
+                point.timeStamp,
+                point.branchId,
+                point.customerId,
+                point.staffId
+            ], (err, result) => {
+                if (err) reject(err)
+                resolve(result)
+            });
     })
 }
 
 exports.getPointByCustomerId = (customerId) => {
     return new Promise((resolve, reject) => {
-        db.query("SELECT * FROM Point where customer_id = ?", 
-        [
-            customerId
-        ], (err, result) => {
-            if (err) reject(err)
-            resolve(result)
-        });
+        db.query("SELECT * FROM Point where customer_id = ?",
+            [
+                customerId
+            ], (err, result) => {
+                if (err) reject(err)
+                resolve(result)
+            });
     })
 }
 
 exports.getPointByBranchId = () => {
     return new Promise((resolve, reject) => {
-        db.query("SELECT * FROM Point where branch_id = ?", 
-        [
-            branchId
-        ], (err, result) => {
-            if (err) reject(err)
-            resolve(result)
-        });
+        db.query("SELECT * FROM Point where branch_id = ?",
+            [
+                branchId
+            ], (err, result) => {
+                if (err) reject(err)
+                resolve(result)
+            });
     })
 }
 
@@ -51,16 +51,16 @@ exports.getTotalPoint = (totalPoint) => {
              WHERE p.customer_id = ? and p.point_status = 'reward' and b.merchant_id = ?) as a,
              (SELECT ifnull(SUM(point),0) as redeem
               FROM Point p right join Branch b on p.branch_id = b.branch_id
-             WHERE p.customer_id = ? and p.point_status = 'redeem' and b.merchant_id = ?) as b`, 
-        [
-            totalPoint.customerId,
-            totalPoint.merchantId,
-            totalPoint.customerId,
-            totalPoint.merchantId
-        ], (err, result) => {
-            if (err) reject(err)
-            resolve(result)
-        });
+             WHERE p.customer_id = ? and p.point_status = 'redeem' and b.merchant_id = ?) as b`,
+            [
+                totalPoint.customerId,
+                totalPoint.merchantId,
+                totalPoint.customerId,
+                totalPoint.merchantId
+            ], (err, result) => {
+                if (err) reject(err)
+                resolve(result)
+            });
     })
 }
 
@@ -71,8 +71,25 @@ exports.getPointHistory = (branchId) => {
         join Branch b on p.branch_id = b.branch_id
         join Staff s on p.staff_id = s.staff_id
         where p.branch_id = ?;`
-        ,[
-            branchId
+            , [
+                branchId
+            ], (err, result) => {
+                if (err) reject(err)
+                resolve(result)
+            });
+    })
+}
+
+exports.getTotalPointTwo = (merchantId) => {
+    return new Promise((resolve, reject) => {
+        db.query(`
+        select *
+            from Point p
+            join Customer c on p.customer_id = c.customer_id
+            join Branch b on b.branch_id = p.branch_id
+            where b.merchant_id = ?;`
+        [
+            merchantId
         ], (err, result) => {
             if (err) reject(err)
             resolve(result)

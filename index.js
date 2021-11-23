@@ -22,6 +22,7 @@ const prize = require("./controller/prize");
 const moment = require("moment");
 require('moment-timezone');
 const point = require("./controller/point");
+const member = require("./controller/member");
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
@@ -764,20 +765,89 @@ app.post("/merchant/v1/createPrize", authenticatePinToken, async (req,res) => {
 });
 
 app.post("/merchant/v1/prizeInit", authenticatePinToken, async (req,res) => {
+  var branchId = req.body.branchId;
+  var prizeList = await prize.getPrizeByBranchId(branchId);
 
+  var data = {
+    status: "sucess",
+    prizeList: prizeList
+  };
+  return functions.responseJson(res, data);
 });
+
+app.post("/merchant/v1/removePrize", authenticatePinToken, async (req,res) => {
+  var authHeader = req.headers["authorization"];
+  var token = authHeader && authHeader.split(" ")[1];
+  if (token == null) return res.sendStatus(401);
+  var decode = jwt.decode(token);
+
+  if (decode.roleId !== undefined && decode.roleId === 3) {
+    var data = {
+      status: "error",
+      errorMessage: "Do not have permittion",
+    };
+    return functions.responseJson(res, data);
+  }
+
+  var prizeId = req.body.prizeId;
+  try {
+    var prizeState = await prize.removePrize(prizeId);
+    if (prizeState.affectedRows === 1) {
+      var data = {
+        status: "success",
+      };
+      return functions.responseJson(res, data);
+    }
+  } catch (error) {
+    var data = {
+      status: "error",
+      errorMessage: "Conflict",
+    };
+    return functions.responseJson(res, data);
+  }
+})
 
 //-------------------------------------------- History -----------------------------------------
 app.post("/merchant/v1/pointHistory", authenticatePinToken,async (req, res) => {
   var branchId = req.body.branchId;
   var pointList = await point.getPointHistory(branchId);
-  console.log(branchId)
+
   var data = {
     status: "sucess",
     pointList: pointList
   };
+  return functions.responseJson(res, data);
+});
+
+app.post("/merchant/v1/myMember", authenticatePinToken, async (req,res) => {
+  var branchId = req.body.branchId;
+  var customerList = await member.getPrizeById(branchId);
+
+  var data = {
+    status: "sucess",
+    customerList: customerList
+  };
+  return functions.responseJson(res, data);
+});
+
+app.post("/merchant/v1/totalPoint2", async (req, res) => {
+  var merchantId =  req.body.data.merchantId;
+  var customerPoint = await point.getTotalPointTwo(merchantId)
+
+//-------------------------------ยังไม่เสร็จ-------------------
+
+  if (customerPoint.length === 0) {
+    var data = {
+      status: "error",
+      errorMessage: "Null",
+    };
+    return functions.responseJson(res, data);
+  }
+  var data = {
+    status: "success",
+    customerPoint: customerPoint
+  };
   console.log(data)
-  console.log(pointList)
   return functions.responseJson(res, data);
 });
 

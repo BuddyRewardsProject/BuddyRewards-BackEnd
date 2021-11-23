@@ -38,3 +38,15 @@ exports.getPrizeByBranchId = (branchId) => {
         });
     })
 }
+
+exports.removePrize = (prizeId) => {
+    return new Promise((resolve, reject) => {
+        db.query("DELETE FROM Prize WHERE prize_id = ?", 
+        [
+            prizeId
+        ], (err, result) => {
+            if (err) reject(err)
+            resolve(result)
+        });
+    })
+}
