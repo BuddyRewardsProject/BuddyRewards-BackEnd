@@ -66,11 +66,12 @@ exports.getTotalPoint = (totalPoint) => {
 
 exports.getPointHistory = (branchId) => {
     return new Promise((resolve, reject) => {
-        db.query(`select * from Customer c
-        join Point p on c.customer_id = p.customer_id
-        join Branch b on p.branch_id = b.branch_id
-        join Staff s on p.staff_id = s.staff_id
-        where p.branch_id = ?;`
+        db.query(`select p.time_stamp, c.first_name, c.last_name, c.nick_name,p.point,p.point_status,s.first_name as staffFirstname
+        from Customer c
+                join Point p on c.customer_id = p.customer_id
+                join Branch b on p.branch_id = b.branch_id
+                join Staff s on p.staff_id = s.staff_id
+                where p.branch_id = ?`
             , [
                 branchId
             ], (err, result) => {
@@ -87,7 +88,7 @@ exports.getTotalPointTwo = (merchantId) => {
             from Point p
             join Customer c on p.customer_id = c.customer_id
             join Branch b on b.branch_id = p.branch_id
-            where b.merchant_id = ?;`
+            where b.merchant_id = ? order by p.time_stamp desc;`
         [
             merchantId
         ], (err, result) => {
