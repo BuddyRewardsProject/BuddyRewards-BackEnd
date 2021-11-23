@@ -27,3 +27,14 @@ exports.getMerchantById = (merchantId) => {
         });
     })
 }
+exports.getMerchantBycustomerId = (merchantId) => {
+    return new Promise((resolve, reject) => {
+        db.query("SELECT * FROM Merchant where merchant_id = ?", 
+        [
+            merchantId
+        ], (err, result) => {
+            if (err) reject(err)
+            resolve(result)
+        });
+    })
+}
