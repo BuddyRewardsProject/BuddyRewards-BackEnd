@@ -23,7 +23,7 @@ const moment = require("moment");
 require('moment-timezone');
 const point = require("./controller/point");
 const member = require("./controller/member");
-const pointHistory = require("./controller/pointHistory");
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
 app.use(express.json());
