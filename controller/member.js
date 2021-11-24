@@ -1,14 +1,18 @@
 const db = require('../model/dbConnection');
 
-exports.getPrizeById = (branchId) => {
+exports.getTotalPointByMerchantId = (merchantId) => {
     return new Promise((resolve, reject) => {
         db.query(`
-        select c.customer_id, c.first_name, c.last_name, c.nick_name, c.phone, c.date_of_birth, c.gender
-        from Point p
-        join Customer c on p.customer_id = c.customer_id
-        where p.branch_id = ? group by c.customer_id;`, 
+        SELECT *, IFNULL((SELECT  reward - redeem
+FROM (SELECT SUM(point) as reward
+      FROM Point p left join Branch b on p.branch_id = b.branch_id
+     WHERE customer_id = c.customer_id and p.point_status = 'reward' and b.merchant_id = ?) as a,
+     (SELECT ifnull(SUM(point),0) as redeem
+      FROM Point p right join Branch b on p.branch_id = b.branch_id
+     WHERE customer_id = c.customer_id and p.point_status = 'redeem' and b.merchant_id = ?) as b) ,0) as totalPoint FROM Customer c `, 
         [
-            branchId
+            merchantId,
+            merchantId
         ], (err, result) => {
             if (err) reject(err)
             resolve(result)

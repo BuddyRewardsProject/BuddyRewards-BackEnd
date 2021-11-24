@@ -20,7 +20,7 @@ const staffRole = require("./controller/staffRole");
 const formula = require("./controller/formula");
 const prize = require("./controller/prize");
 const moment = require("moment");
-require('moment-timezone');
+require("moment-timezone");
 const point = require("./controller/point");
 const member = require("./controller/member");
 
@@ -39,7 +39,7 @@ app.post("/merchant/v1/login", async (req, res) => {
     if (result[0].password !== hashPassword) {
       var data = {
         status: "error",
-        errorMessage: "Username or Password is incorrect",
+        errorMessage: "Username or Password is incorrect ==",
       };
       return functions.responseJson(res, data);
     }
@@ -62,8 +62,9 @@ app.post("/merchant/v1/login", async (req, res) => {
   } else {
     var data = {
       status: "error",
-      errorMessage: "Username or Password is incorrect",
+      errorMessage: "ไม่พบข้อมูลโปรดลองใหม่อีกครั้ง",
     };
+
     return functions.responseJson(res, data);
   }
 });
@@ -120,30 +121,33 @@ app.post("/merchant/v1/login/pin", authenticateToken, async (req, res) => {
   }
 });
 
-app.post("/merchant/v1/login/pin/check", authenticateToken, async (req, res) => {
-  var branchId = req.body.branchId;
-  var user = await staff.getStaffByBranchId(branchId);
+app.post(
+  "/merchant/v1/login/pin/check",
+  authenticateToken,
+  async (req, res) => {
+    var branchId = req.body.branchId;
+    var user = await staff.getStaffByBranchId(branchId);
 
-  if (user.length > 0) {
-    if (user[0].pincode === null) {
-      var data = {
-        status: "unsuccess",
-      };
-      return functions.responseJson(res, data);
+    if (user.length > 0) {
+      if (user[0].pincode === null) {
+        var data = {
+          status: "unsuccess",
+        };
+        return functions.responseJson(res, data);
+      } else {
+        var data = {
+          status: "success",
+        };
+        return functions.responseJson(res, data);
+      }
     } else {
       var data = {
-        status: "success",
+        status: "error",
+        errorMessage: "Conflict",
       };
       return functions.responseJson(res, data);
     }
-  } else {
-    var data = {
-      status: "error",
-      errorMessage: "Conflict",
-    };
-    return functions.responseJson(res, data);
   }
-}
 );
 
 //Register
@@ -153,7 +157,7 @@ app.post("/merchant/v1/register", async (req, res) => {
   var hash = crypto.createHmac("sha512", process.env.SECRET_KEY);
   hash.update(registerData.merchantPassword);
   var hasedPassword = hash.digest("hex");
-  var genFormulaId = generate
+  var genFormulaId = generate;
 
   if (registerData.merchantName === "") {
     var data = {
@@ -166,7 +170,7 @@ app.post("/merchant/v1/register", async (req, res) => {
     merchantId: generate,
     merchantName: registerData.merchantName,
     rewardType: registerData.rewardType,
-    formulaId: genFormulaId
+    formulaId: genFormulaId,
   };
   var branchInfo = {
     branchName: registerData.branchName,
@@ -186,7 +190,11 @@ app.post("/merchant/v1/register", async (req, res) => {
     var merchantState = await merchant.addMerchant(merchantInfo);
     var branchState = await branch.addBranch(branchInfo);
 
-    if (merchantState.affectedRows === 1 && branchState.affectedRows === 1 && formulaState.affectedRows === 1) {
+    if (
+      merchantState.affectedRows === 1 &&
+      branchState.affectedRows === 1 &&
+      formulaState.affectedRows === 1
+    ) {
       var staffInfo = {
         staffId: generate,
         firstName: registerData.ownerFirstName,
@@ -213,159 +221,168 @@ app.post("/merchant/v1/register", async (req, res) => {
   }
 });
 
-app.post("/merchant/v1/branch/branchmanagement/add", authenticatePinToken, async (req, res) => {
-  var registerData = req.body.data;
-  var generate = Math.round(new Date().getTime() / 1000);
-  var hash = crypto.createHmac("sha512", process.env.SECRET_KEY);
-  hash.update(registerData.merchantPassword);
-  var hasedPassword = hash.digest("hex");
-  var authHeader = req.headers["authorization"];
-  var token = authHeader && authHeader.split(" ")[1];
+app.post(
+  "/merchant/v1/branch/branchmanagement/add",
+  authenticatePinToken,
+  async (req, res) => {
+    var registerData = req.body.data;
+    var generate = Math.round(new Date().getTime() / 1000);
+    var hash = crypto.createHmac("sha512", process.env.SECRET_KEY);
+    hash.update(registerData.merchantPassword);
+    var hasedPassword = hash.digest("hex");
+    var authHeader = req.headers["authorization"];
+    var token = authHeader && authHeader.split(" ")[1];
 
-  if (token == null) return res.sendStatus(401);
-  var decode = jwt.decode(token);
-  if (
-    decode.roleId !== undefined &&
-    decode.roleId === 2 &&
-    decode.roleId === 3 &&
-    jwt.decode(registerData.userToken).masterAccount === 0
-  ) {
-    var data = {
-      status: "error",
-      errorMessage: "Do not have permittion",
-    };
-    return functions.responseJson(res, data);
-  }
-
-  var branchInfo = {
-    branchName: registerData.branchName,
-    phone: registerData.branchPhone,
-    userName: registerData.merchantUserName,
-    password: hasedPassword,
-    masterAccount: 0,
-    districtId: registerData.districtName,
-    merchantId: jwt.decode(registerData.userToken).merchantId,
-  };
-  try {
-    var branchState = await branch.addBranch(branchInfo);
-    if (branchState.affectedRows === 1) {
-      var staffInfo = {
-        staffId: generate,
-        firstName: decode.firstName,
-        lastName: decode.lastName,
-        pincode: decode.pincode,
-        phone: decode.phone,
-        roleId: 1,
-        branchId: branchState.insertId,
+    if (token == null) return res.sendStatus(401);
+    var decode = jwt.decode(token);
+    if (
+      decode.roleId !== undefined &&
+      decode.roleId === 2 &&
+      decode.roleId === 3 &&
+      jwt.decode(registerData.userToken).masterAccount === 0
+    ) {
+      var data = {
+        status: "error",
+        errorMessage: "Do not have permittion",
       };
-      var staffState = await staff.addStaff(staffInfo);
+      return functions.responseJson(res, data);
+    }
+
+    var branchInfo = {
+      branchName: registerData.branchName,
+      phone: registerData.branchPhone,
+      userName: registerData.merchantUserName,
+      password: hasedPassword,
+      masterAccount: 0,
+      districtId: registerData.districtName,
+      merchantId: jwt.decode(registerData.userToken).merchantId,
+    };
+    try {
+      var branchState = await branch.addBranch(branchInfo);
+      if (branchState.affectedRows === 1) {
+        var staffInfo = {
+          staffId: generate,
+          firstName: decode.firstName,
+          lastName: decode.lastName,
+          pincode: decode.pincode,
+          phone: decode.phone,
+          roleId: 1,
+          branchId: branchState.insertId,
+        };
+        var staffState = await staff.addStaff(staffInfo);
+        if (staffState.affectedRows === 1) {
+          var data = {
+            status: "success",
+          };
+          return functions.responseJson(res, data);
+        } else {
+          var data = {
+            status: "error",
+            errorMessage: "Error",
+          };
+          return functions.responseJson(res, data);
+        }
+      }
+    } catch (error) {
+      var data = {
+        status: "error",
+        errorMessage: "Conflict",
+      };
+      return functions.responseJson(res, data);
+    }
+  }
+);
+
+//add staff in branch
+app.post(
+  "/merchant/v1/branch/staff/add",
+  authenticatePinToken,
+  async (req, res) => {
+    var authHeader = req.headers["authorization"];
+    var token = authHeader && authHeader.split(" ")[1];
+
+    if (token == null) return res.sendStatus(401);
+    var decode = jwt.decode(token);
+
+    if (decode.roleId !== undefined && decode.roleId === 3) {
+      var data = {
+        status: "error",
+        errorMessage: "Do not have permittion",
+      };
+      return functions.responseJson(res, data);
+    }
+    var staffData = req.body.data;
+    var generate = Math.round(new Date().getTime() / 1000);
+
+    if (staffData.firstName === "") {
+      var data = {
+        status: "error",
+        errorMessage: "Empty",
+      };
+      return functions.responseJson(res, data);
+    }
+    var staffInfo = {
+      staffId: generate,
+      firstName: staffData.staffFirstName,
+      lastName: staffData.staffLastName,
+      pincode: staffData.staffPin,
+      phone: staffData.staffPhone,
+      roleId: staffData.roleId,
+      branchId: staffData.branchId,
+    };
+    try {
+      var staffState = await staff.addStaffManagement(staffInfo);
       if (staffState.affectedRows === 1) {
         var data = {
           status: "success",
         };
         return functions.responseJson(res, data);
-      } else {
+      }
+    } catch (error) {
+      var data = {
+        status: "error",
+        errorMessage: "Conflict",
+      };
+      return functions.responseJson(res, data);
+    }
+  }
+);
+
+app.post(
+  "/merchant/v1/branch/staff/remove",
+  authenticatePinToken,
+  async (req, res) => {
+    var authHeader = req.headers["authorization"];
+    var token = authHeader && authHeader.split(" ")[1];
+
+    if (token == null) return res.sendStatus(401);
+    var decode = jwt.decode(token);
+
+    if (decode.roleId !== undefined && decode.roleId === 3) {
+      var data = {
+        status: "error",
+        errorMessage: "Do not have permittion",
+      };
+      return functions.responseJson(res, data);
+    }
+
+    var staffId = req.body.staffId;
+    try {
+      var staffState = await staff.removeStaffManagement(staffId);
+      if (staffState.affectedRows === 1) {
         var data = {
-          status: "error",
-          errorMessage: "Error",
+          status: "success",
         };
         return functions.responseJson(res, data);
       }
-    }
-  } catch (error) {
-    var data = {
-      status: "error",
-      errorMessage: "Conflict",
-    };
-    return functions.responseJson(res, data);
-  }
-}
-);
-
-//add staff in branch
-app.post("/merchant/v1/branch/staff/add", authenticatePinToken, async (req, res) => {
-  var authHeader = req.headers["authorization"];
-  var token = authHeader && authHeader.split(" ")[1];
-
-  if (token == null) return res.sendStatus(401);
-  var decode = jwt.decode(token);
-
-  if (decode.roleId !== undefined && decode.roleId === 3) {
-    var data = {
-      status: "error",
-      errorMessage: "Do not have permittion",
-    };
-    return functions.responseJson(res, data);
-  }
-  var staffData = req.body.data;
-  var generate = Math.round(new Date().getTime() / 1000);
-
-  if (staffData.firstName === "") {
-    var data = {
-      status: "error",
-      errorMessage: "Empty",
-    };
-    return functions.responseJson(res, data);
-  }
-  var staffInfo = {
-    staffId: generate,
-    firstName: staffData.staffFirstName,
-    lastName: staffData.staffLastName,
-    pincode: staffData.staffPin,
-    phone: staffData.staffPhone,
-    roleId: staffData.roleId,
-    branchId: staffData.branchId,
-  };
-  try {
-    var staffState = await staff.addStaffManagement(staffInfo);
-    if (staffState.affectedRows === 1) {
+    } catch (error) {
       var data = {
-        status: "success",
+        status: "error",
+        errorMessage: "Conflict",
       };
       return functions.responseJson(res, data);
     }
-  } catch (error) {
-    var data = {
-      status: "error",
-      errorMessage: "Conflict",
-    };
-    return functions.responseJson(res, data);
   }
-}
-);
-
-app.post("/merchant/v1/branch/staff/remove", authenticatePinToken, async (req, res) => {
-  var authHeader = req.headers["authorization"];
-  var token = authHeader && authHeader.split(" ")[1];
-
-  if (token == null) return res.sendStatus(401);
-  var decode = jwt.decode(token);
-
-  if (decode.roleId !== undefined && decode.roleId === 3) {
-    var data = {
-      status: "error",
-      errorMessage: "Do not have permittion",
-    };
-    return functions.responseJson(res, data);
-  }
-
-  var staffId = req.body.staffId;
-  try {
-    var staffState = await staff.removeStaffManagement(staffId);
-    if (staffState.affectedRows === 1) {
-      var data = {
-        status: "success",
-      };
-      return functions.responseJson(res, data);
-    }
-  } catch (error) {
-    var data = {
-      status: "error",
-      errorMessage: "Conflict",
-    };
-    return functions.responseJson(res, data);
-  }
-}
 );
 
 app.get("/merchant/v1/register/init", async (req, res) => {
@@ -451,53 +468,56 @@ app.get("/merchant/v1/branch/staff/role", authenticatePinToken, (req, res) => {
 });
 
 //---------------------------------------- Reward Point System ----------------------------------------
-app.post("/merchant/v1/branch/webpos/customerInfo", authenticatePinToken, async (req, res) => {
-  var inputData = req.body.data;
-  if (inputData === "") {
-    var data = {
-      status: "error",
-      errorMessage: "inputData = Null",
-    };
-    return functions.responseJson(res, data);
-  } else {
-    var user = await customer.getCustomerById(inputData.customerId);
-    if (user.length > 0) {
-      var customerInfo = {
-        customerId: user[0].customer_id,
-        customerNickName: user[0].nick_name,
-        customerFirstName: user[0].first_name,
-        customerPhone: user[0].phone,
-        customerLastName: user[0].last_name,
-        customerEmail: user[0].email,
-        customerDOB: moment(user[0].date_of_birth).format("DD/MM/YYYY"),
-      };
+app.post(
+  "/merchant/v1/branch/webpos/customerInfo",
+  authenticatePinToken,
+  async (req, res) => {
+    var inputData = req.body.data;
+    if (inputData === "") {
       var data = {
-        status: "success",
-        customerInfo: customerInfo,
+        status: "error",
+        errorMessage: "inputData = Null",
       };
       return functions.responseJson(res, data);
     } else {
-      var data = {
-        status: "error",
-        errorMessage: "Error",
-      };
-      return functions.responseJson(res, data);
+      var user = await customer.getCustomerById(inputData.customerId);
+      if (user.length > 0) {
+        var customerInfo = {
+          customerId: user[0].customer_id,
+          customerNickName: user[0].nick_name,
+          customerFirstName: user[0].first_name,
+          customerPhone: user[0].phone,
+          customerLastName: user[0].last_name,
+          customerEmail: user[0].email,
+          customerDOB: moment(user[0].date_of_birth).format("DD/MM/YYYY"),
+        };
+        var data = {
+          status: "success",
+          customerInfo: customerInfo,
+        };
+        return functions.responseJson(res, data);
+      } else {
+        var data = {
+          status: "error",
+          errorMessage: "Error",
+        };
+        return functions.responseJson(res, data);
+      }
     }
   }
-}
 );
 
 app.post("/merchant/v1/calculate", async (req, res) => {
-  var price = req.body.data.price
-  var merchantId = req.body.data.merchantId
-  var merchantInfo = await merchant.getMerchantById(merchantId)
-  var formulaInfo = await formula.getFormulaById(merchantInfo[0].formula_id)
-  var divider = formulaInfo[0].divider
-  var resultPoint = price / divider
+  var price = req.body.data.price;
+  var merchantId = req.body.data.merchantId;
+  var merchantInfo = await merchant.getMerchantById(merchantId);
+  var formulaInfo = await formula.getFormulaById(merchantInfo[0].formula_id);
+  var divider = formulaInfo[0].divider;
+  var resultPoint = price / divider;
 
   var data = {
     status: "success",
-    resultPoint: parseInt(resultPoint)
+    resultPoint: parseInt(resultPoint),
   };
   return functions.responseJson(res, data);
 });
@@ -505,9 +525,9 @@ app.post("/merchant/v1/calculate", async (req, res) => {
 app.post("/merchant/v1/totalPoint", async (req, res) => {
   var info = {
     customerId: req.body.data.customerId,
-    merchantId: req.body.data.merchantId
-  }
-  var customerPoint = await point.getTotalPoint(info)
+    merchantId: req.body.data.merchantId,
+  };
+  var customerPoint = await point.getTotalPoint(info);
 
   if (customerPoint.length === 0) {
     var data = {
@@ -518,7 +538,7 @@ app.post("/merchant/v1/totalPoint", async (req, res) => {
   }
   var data = {
     status: "success",
-    customerPoint: customerPoint[0].result
+    customerPoint: customerPoint[0].result,
   };
   return functions.responseJson(res, data);
 });
@@ -528,7 +548,7 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
   var token = authHeader && authHeader.split(" ")[1];
   if (token == null) return res.sendStatus(401);
   var decode = jwt.decode(token);
-  var rewardData = req.body.data
+  var rewardData = req.body.data;
 
   var pointData = {
     point: rewardData.point,
@@ -536,33 +556,40 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
     timeStamp: moment().tz("Asia/Bangkok").format(),
     branchId: decode.branchId,
     customerId: rewardData.customerId,
-    staffId: decode.staffId
-  }
+    staffId: decode.staffId,
+  };
   try {
-    var pointState = await point.addPoint(pointData)
+    var pointState = await point.addPoint(pointData);
 
     if (pointState.affectedRows === 1) {
       var data = {
         status: "success",
       };
       //message
-      var user = await customer.getCustomerById(rewardData.customerId)
-      var merchantInfo = await merchant.getMerchantById(rewardData.merchantId)
-      var branchInfo = await branch.getBranchById(rewardData.branchId)
-      var request = require('request');
+      var user = await customer.getCustomerById(rewardData.customerId);
+      var merchantInfo = await merchant.getMerchantById(rewardData.merchantId);
+      var branchInfo = await branch.getBranchById(rewardData.branchId);
+      var request = require("request");
       var options = {
-        method: 'POST',
-        url: 'https://api.line.me/v2/bot/message/push',
-        'headers': {
-          'Authorization': 'Bearer aHWepJVgrz/uWn+EIztg3U5364iasK2r9yAAQSOfZ0qnNshGRpiG41L0YDKyuf1scGxRywDimRu1LGKcvQlcTQhgMDGtdF6sDPDse1zr008cTR4e0B3x2cE3ApAJz7EZrx9NA3nN52ipcnC6CZ3v8QdB04t89/1O/w1cDnyilFU=',
-          'Content-Type': 'application/json'
+        method: "POST",
+        url: "https://api.line.me/v2/bot/message/push",
+        headers: {
+          Authorization:
+            "Bearer aHWepJVgrz/uWn+EIztg3U5364iasK2r9yAAQSOfZ0qnNshGRpiG41L0YDKyuf1scGxRywDimRu1LGKcvQlcTQhgMDGtdF6sDPDse1zr008cTR4e0B3x2cE3ApAJz7EZrx9NA3nN52ipcnC6CZ3v8QdB04t89/1O/w1cDnyilFU=",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           to: user[0].line_id,
           messages: [
             {
               type: "flex",
-              altText: "คุณได้รับ " + rewardData.point + " แต้ม จาก " + `${merchantInfo[0].merchant_name}` + " " + `${branchInfo[0].branch_name}`,   //เปลี่ยน
+              altText:
+                "คุณได้รับ " +
+                rewardData.point +
+                " แต้ม จาก " +
+                `${merchantInfo[0].merchant_name}` +
+                " " +
+                `${branchInfo[0].branch_name}`, //เปลี่ยน
               contents: {
                 type: "bubble",
                 size: "kilo",
@@ -576,13 +603,13 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
                       contents: [
                         {
                           type: "text",
-                          text: "สะสม / รับ",    //เปลี่ยน
+                          text: "สะสม / รับ", //เปลี่ยน
                           weight: "bold",
                           size: "md",
                           color: "#FF7A12FF",
                           align: "start",
                           gravity: "center",
-                          contents: []
+                          contents: [],
                         },
                         {
                           type: "image",
@@ -590,9 +617,9 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
                           margin: "none",
                           align: "end",
                           size: "xs",
-                          aspectRatio: "16:9"
-                        }
-                      ]
+                          aspectRatio: "16:9",
+                        },
+                      ],
                     },
                     {
                       type: "box",
@@ -601,13 +628,13 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
                       contents: [
                         {
                           type: "text",
-                          text: rewardData.point + " แต้ม",    //เปลี่ยน
+                          text: rewardData.point + " แต้ม", //เปลี่ยน
                           weight: "bold",
                           size: "3xl",
                           align: "start",
-                          contents: []
-                        }
-                      ]
+                          contents: [],
+                        },
+                      ],
                     },
                     {
                       type: "box",
@@ -619,21 +646,23 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
                           contents: [
                             {
                               type: "text",
-                              text: moment().tz("Asia/Bangkok").format("DD/MM/YYYY HH:mm"),    //เปลี่ยน
+                              text: moment()
+                                .tz("Asia/Bangkok")
+                                .format("DD/MM/YYYY HH:mm"), //เปลี่ยน
                               size: "sm",
                               color: "#949494FF",
                               align: "start",
                               margin: "sm",
-                              contents: []
-                            }
-                          ]
+                              contents: [],
+                            },
+                          ],
                         },
                         {
                           type: "separator",
                           margin: "md",
-                          color: "#C3C3C3FF"
-                        }
-                      ]
+                          color: "#C3C3C3FF",
+                        },
+                      ],
                     },
                     {
                       type: "box",
@@ -655,18 +684,18 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
                               align: "start",
                               gravity: "top",
                               wrap: true,
-                              contents: []
+                              contents: [],
                             },
                             {
                               type: "text",
-                              text: `${merchantInfo[0].merchant_name}`,       //เปลี่ยน
+                              text: `${merchantInfo[0].merchant_name}`, //เปลี่ยน
                               size: "md",
                               color: "#666666",
                               align: "end",
                               wrap: true,
-                              contents: []
-                            }
-                          ]
+                              contents: [],
+                            },
+                          ],
                         },
                         {
                           type: "box",
@@ -679,27 +708,27 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
                               size: "md",
                               color: "#AAAAAA",
                               flex: 1,
-                              contents: []
+                              contents: [],
                             },
                             {
                               type: "text",
-                              text: `${branchInfo[0].branch_name}`,       //เปลี่ยน
+                              text: `${branchInfo[0].branch_name}`, //เปลี่ยน
                               size: "md",
                               color: "#666666",
                               align: "end",
                               wrap: true,
-                              contents: []
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          ]
-        })
+                              contents: [],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        }),
       };
       request(options, function (error, response) {
         if (error) throw new Error(error);
@@ -709,7 +738,7 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
       return functions.responseJson(res, data);
     }
   } catch (error) {
-    console.log(error)
+    console.log(error);
     var data = {
       status: "error",
       errorMessage: "Conflict",
@@ -719,7 +748,7 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
 });
 
 //-------------------------------------------- Redeem Point System ----------------------------------------
-app.post("/merchant/v1/createPrize", authenticatePinToken, async (req,res) => {
+app.post("/merchant/v1/createPrize", authenticatePinToken, async (req, res) => {
   var authHeader = req.headers["authorization"];
   var token = authHeader && authHeader.split(" ")[1];
 
@@ -745,7 +774,7 @@ app.post("/merchant/v1/createPrize", authenticatePinToken, async (req,res) => {
     prizeName: prizeData.prizeName,
     prizeDetail: prizeData.prizeDetail,
     prizePointCost: prizeData.prizePointCost,
-    branchId: prizeData.branchId                       //Waiting for testing
+    branchId: prizeData.branchId, //Waiting for testing
   };
   try {
     var prizeState = await prize.addPrize(prizeInfo);
@@ -764,18 +793,18 @@ app.post("/merchant/v1/createPrize", authenticatePinToken, async (req,res) => {
   }
 });
 
-app.post("/merchant/v1/prizeInit", authenticatePinToken, async (req,res) => {
+app.post("/merchant/v1/prizeInit", authenticatePinToken, async (req, res) => {
   var branchId = req.body.branchId;
   var prizeList = await prize.getPrizeByBranchId(branchId);
 
   var data = {
     status: "sucess",
-    prizeList: prizeList
+    prizeList: prizeList,
   };
   return functions.responseJson(res, data);
 });
 
-app.post("/merchant/v1/removePrize", authenticatePinToken, async (req,res) => {
+app.post("/merchant/v1/removePrize", authenticatePinToken, async (req, res) => {
   var authHeader = req.headers["authorization"];
   var token = authHeader && authHeader.split(" ")[1];
   if (token == null) return res.sendStatus(401);
@@ -805,51 +834,40 @@ app.post("/merchant/v1/removePrize", authenticatePinToken, async (req,res) => {
     };
     return functions.responseJson(res, data);
   }
-})
+});
 
 //-------------------------------------------- History -----------------------------------------
-app.post("/merchant/v1/pointHistory", authenticatePinToken,async (req, res) => {
-  var branchId = req.body.branchId;
-  var pointList = await point.getPointHistory(branchId);
+app.post(
+  "/merchant/v1/pointHistory",
+  authenticatePinToken,
+  async (req, res) => {
+    var branchId = req.body.branchId;
+    var pointList = await point.getPointHistory(branchId);
 
-  var data = {
-    status: "sucess",
-    pointList: pointList
-  };
-  return functions.responseJson(res, data);
-});
-
-app.post("/merchant/v1/myMember", authenticatePinToken, async (req,res) => {
-  var branchId = req.body.branchId;
-  var customerList = await member.getPrizeById(branchId);
-
-  var data = {
-    status: "sucess",
-    customerList: customerList
-  };
-  return functions.responseJson(res, data);
-});
-
-app.post("/merchant/v1/totalPoint2", async (req, res) => {
-  var merchantId =  req.body.data.merchantId;
-  var customerPoint = await point.getTotalPointTwo(merchantId)
-
-//-------------------------------ยังไม่เสร็จ-------------------
-
-  if (customerPoint.length === 0) {
     var data = {
-      status: "error",
-      errorMessage: "Null",
+      status: "sucess",
+      pointList: pointList,
     };
     return functions.responseJson(res, data);
   }
+);
+
+app.post("/merchant/v1/myMember", async (req, res) => {
+  
+  
+  console.log(req.body.token);
+  var decode = jwt.decode(req.body.token);
+console.log(decode)
+var customerList = await member.getTotalPointByMerchantId(decode.merchantId);
   var data = {
-    status: "success",
-    customerPoint: customerPoint
+    status: "sucess",
+    customerList: customerList,
   };
-  console.log(data)
+  
   return functions.responseJson(res, data);
 });
+
+
 
 //-------------------------------------------- Customer -----------------------------------------
 app.post("/customer/v1/home", authenticateCustomerToken, async (req, res) => {
@@ -925,7 +943,7 @@ app.post("/customer/v1/register", async (req, res) => {
       customerGender: registerData.customerGender,
       customerDOB: registerData.customerDOB,
       lineId: user.userId,
-      pictureUrl: user.pictureUrl
+      pictureUrl: user.pictureUrl,
     };
 
     try {
@@ -977,7 +995,7 @@ app.post("/customer/v1/liff", async (req, res) => {
       customerPhone: result[0].phone,
       customerGender: result[0].gender,
       customerDOB: result[0].date_of_birth,
-      customerPic: result[0].picture_url
+      customerPic: result[0].picture_url,
     };
     var data = {
       status: "success",
@@ -1010,7 +1028,7 @@ app.post("/customer/v1/login", async (req, res) => {
       customerPhone: result[0].phone,
       customerGender: result[0].gender,
       customerDOB: result[0].date_of_birth,
-      customerPic: result[0].picture_url
+      customerPic: result[0].picture_url,
     };
 
     var data = {
@@ -1026,7 +1044,6 @@ app.post("/customer/v1/login", async (req, res) => {
     return functions.responseJson(res, data);
   }
 });
-
 
 //----------------------------------------- Server/Token --------------------------------------
 app.listen(process.env.PORT, () => {

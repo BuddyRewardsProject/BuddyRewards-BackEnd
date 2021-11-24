@@ -71,7 +71,7 @@ exports.getPointHistory = (branchId) => {
                 join Point p on c.customer_id = p.customer_id
                 join Branch b on p.branch_id = b.branch_id
                 join Staff s on p.staff_id = s.staff_id
-                where p.branch_id = ?`
+                where p.branch_id = ? order by p.time_stamp DESC`
             , [
                 branchId
             ], (err, result) => {
