@@ -39,7 +39,7 @@ app.post("/merchant/v1/login", async (req, res) => {
     if (result[0].password !== hashPassword) {
       var data = {
         status: "error",
-        errorMessage: "Username or Password is incorrect ==",
+        errorMessage: "ไอดี หรือ รหัสผ่านไม่ถูกต้อง ",
       };
       return functions.responseJson(res, data);
     }
