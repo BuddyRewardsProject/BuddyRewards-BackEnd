@@ -82,3 +82,23 @@ exports.getCustomerLineContext = (line_context) => {
             });
     })
 }
+
+exports.getAllMerchantNamebyCustomerId = (customerId) => {
+    return new Promise((resolve, reject) => {
+        db.query(`
+        select distinct M.merchant_name,customer_id , B.merchant_id
+        from Point
+       join Branch B on B.branch_id = Point.branch_id
+       join Merchant M on B.merchant_id = M.merchant_id
+       where customer_id = ?
+        `,
+        [
+            customerId
+        ],
+            (err, result) => {
+                if (err) reject(err)
+                resolve(result)
+            });
+    })
+}
+

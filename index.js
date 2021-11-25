@@ -885,6 +885,45 @@ app.post("/customer/v1/home", authenticateCustomerToken, async (req, res) => {
   return functions.responseJson(res, data);
 });
 
+//-------------------------------------------- Customer get id for merchantdata -----------------------------------------
+app.post("/customer/v1/merchantdata", async (req, res) => {
+  var customerId = req.body.customerId;
+  var merchantWithPoint = []
+
+  console.log(customerId)
+  var merchantName  = await customer.getAllMerchantNamebyCustomerId(customerId);
+  //
+  //console.log(merchantName)
+  merchantName.forEach (async(value, index) => 
+  { 
+    
+    var merchantPoint = await point.getCustomerPointByMerchantId(value.merchant_id,customerId);
+    var merchant = {
+      merchantId : value.merchant_id,
+      merchantName : value.merchant_name,
+      TotalPoint : merchantPoint[0].totalPoint
+    }
+   // console.log(merchant)
+    merchantWithPoint.push(merchant)
+    console.log(merchantWithPoint)
+    if(merchantName.length -1 === index){
+      var data = {
+        status: "sucess",
+        merchantInfo: merchantWithPoint
+      };
+      return functions.responseJson(res, data);
+    }
+  })
+ 
+
+
+ 
+
+  
+});
+
+//-------------------------------------------- Customer -----------------------------------------
+
 app.get("/customer/v1/accCheck", async (req, res) => {
   var lineContext = req.body.accessToken;
   var result = await customer.getCustomerLineContext(lineContext);
