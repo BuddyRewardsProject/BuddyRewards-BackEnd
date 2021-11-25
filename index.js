@@ -489,8 +489,7 @@ app.post(
           customerPhone: user[0].phone,
           customerLastName: user[0].last_name,
           customerEmail: user[0].email,
-          customerDOB: moment(user[0].date_of_birth).format("DD/MM/YYYY"),
-          pictureUrl: user[0].picture_url,
+          customerDOB: moment(user[0].date_of_birth).format("DD/MM/YYYY")
         };
         var data = {
           status: "success",
@@ -554,7 +553,7 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
   var pointData = {
     point: rewardData.point,
     pointStatus: "reward",
-    timeStamp: moment().format(),
+    timeStamp: moment().tz("Asia/Bangkok").format(),
     branchId: decode.branchId,
     customerId: rewardData.customerId,
     staffId: decode.staffId,
@@ -755,7 +754,6 @@ app.post("/merchant/v1/createPrize", authenticatePinToken, async (req, res) => {
 
   if (token == null) return res.sendStatus(401);
   var decode = jwt.decode(token);
-
   if (decode.roleId !== undefined && decode.roleId === 3) {
     var data = {
       status: "error",
@@ -775,7 +773,7 @@ app.post("/merchant/v1/createPrize", authenticatePinToken, async (req, res) => {
     prizeName: prizeData.prizeName,
     prizeDetail: prizeData.prizeDetail,
     prizePointCost: prizeData.prizePointCost,
-    branchId: prizeData.branchId, //Waiting for testing
+    merchantId: prizeData.merchantId
   };
   try {
     var prizeState = await prize.addPrize(prizeInfo);
@@ -795,9 +793,8 @@ app.post("/merchant/v1/createPrize", authenticatePinToken, async (req, res) => {
 });
 
 app.post("/merchant/v1/prizeInit", authenticatePinToken, async (req, res) => {
-  var branchId = req.body.branchId;
-  var prizeList = await prize.getPrizeByBranchId(branchId);
-
+  var merchantId = req.body.merchantId;
+  var prizeList = await prize.getPrizeByMerchantId(merchantId);
   var data = {
     status: "sucess",
     prizeList: prizeList,
@@ -810,16 +807,17 @@ app.post("/merchant/v1/removePrize", authenticatePinToken, async (req, res) => {
   var token = authHeader && authHeader.split(" ")[1];
   if (token == null) return res.sendStatus(401);
   var decode = jwt.decode(token);
+  var merchantData = req.body.data
+  var prizeId = req.body.prizeId;
 
-  if (decode.roleId !== undefined && decode.roleId === 3) {
+  if (decode.roleId !== undefined && decode.roleId === 3 &&
+    jwt.decode(merchantData.userToken).masterAccount === 0) {
     var data = {
       status: "error",
       errorMessage: "Do not have permittion",
     };
     return functions.responseJson(res, data);
   }
-
-  var prizeId = req.body.prizeId;
   try {
     var prizeState = await prize.removePrize(prizeId);
     if (prizeState.affectedRows === 1) {
@@ -829,6 +827,211 @@ app.post("/merchant/v1/removePrize", authenticatePinToken, async (req, res) => {
       return functions.responseJson(res, data);
     }
   } catch (error) {
+    var data = {
+      status: "error",
+      errorMessage: "Conflict",
+    };
+    return functions.responseJson(res, data);
+  }
+});
+
+app.post("/merchant/v1/removePoint", authenticatePinToken, async (req, res) => {
+  var authHeader = req.headers["authorization"];
+  var token = authHeader && authHeader.split(" ")[1];
+  if (token == null) return res.sendStatus(401);
+  var decode = jwt.decode(token);
+  var rewardData = req.body.data;
+
+  var pointData = {
+    point: rewardData.point,
+    pointStatus: "redeem",
+    timeStamp: moment().tz("Asia/Bangkok").format(),
+    branchId: decode.branchId,
+    customerId: rewardData.customerId,
+    staffId: decode.staffId,
+    prizeId: rewardData.prizeId
+  };
+  try {
+    var pointState = await point.addPointRedeem(pointData);
+
+    if (pointState.affectedRows === 1) {
+      var data = {
+        status: "success",
+      };
+      //message
+      var user = await customer.getCustomerById(rewardData.customerId);
+      var merchantInfo = await merchant.getMerchantById(rewardData.merchantId);
+      var branchInfo = await branch.getBranchById(rewardData.branchId);
+      var request = require("request");
+      var options = {
+        method: "POST",
+        url: "https://api.line.me/v2/bot/message/push",
+        headers: {
+          Authorization:
+            "Bearer aHWepJVgrz/uWn+EIztg3U5364iasK2r9yAAQSOfZ0qnNshGRpiG41L0YDKyuf1scGxRywDimRu1LGKcvQlcTQhgMDGtdF6sDPDse1zr008cTR4e0B3x2cE3ApAJz7EZrx9NA3nN52ipcnC6CZ3v8QdB04t89/1O/w1cDnyilFU=",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: user[0].line_id,
+          messages: [
+            {
+              type: "flex",
+              altText:
+                "คุณได้ใช้ " +
+                rewardData.point +
+                " แต้ม จาก " +
+                `${merchantInfo[0].merchant_name}` +
+                " " +
+                `${branchInfo[0].branch_name}`, //เปลี่ยน
+              contents: {
+                type: "bubble",
+                size: "kilo",
+                body: {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
+                    {
+                      type: "box",
+                      layout: "horizontal",
+                      contents: [
+                        {
+                          type: "text",
+                          text: "แลก / ใช้", //เปลี่ยน
+                          weight: "bold",
+                          size: "md",
+                          color: "#FF7A12FF",
+                          align: "start",
+                          gravity: "center",
+                          contents: [],
+                        },
+                        {
+                          type: "image",
+                          url: "https://cdn.discordapp.com/attachments/629314902602809345/910457263964192768/Group_233buddyreward.png", //เปลี่ยน
+                          margin: "none",
+                          align: "end",
+                          size: "xs",
+                          aspectRatio: "16:9",
+                        },
+                      ],
+                    },
+                    {
+                      type: "box",
+                      layout: "baseline",
+                      margin: "none",
+                      contents: [
+                        {
+                          type: "text",
+                          text: rewardData.point + " แต้ม", //เปลี่ยน
+                          weight: "bold",
+                          size: "3xl",
+                          align: "start",
+                          contents: [],
+                        },
+                      ],
+                    },
+                    {
+                      type: "box",
+                      layout: "vertical",
+                      contents: [
+                        {
+                          type: "box",
+                          layout: "vertical",
+                          contents: [
+                            {
+                              type: "text",
+                              text: moment()
+                                .tz("Asia/Bangkok")
+                                .format("DD/MM/YYYY HH:mm"), //เปลี่ยน
+                              size: "sm",
+                              color: "#949494FF",
+                              align: "start",
+                              margin: "sm",
+                              contents: [],
+                            },
+                          ],
+                        },
+                        {
+                          type: "separator",
+                          margin: "md",
+                          color: "#C3C3C3FF",
+                        },
+                      ],
+                    },
+                    {
+                      type: "box",
+                      layout: "vertical",
+                      spacing: "sm",
+                      margin: "md",
+                      contents: [
+                        {
+                          type: "box",
+                          layout: "baseline",
+                          spacing: "sm",
+                          contents: [
+                            {
+                              type: "text",
+                              text: "ร้านค้า",
+                              size: "md",
+                              color: "#AAAAAA",
+                              flex: 1,
+                              align: "start",
+                              gravity: "top",
+                              wrap: true,
+                              contents: [],
+                            },
+                            {
+                              type: "text",
+                              text: `${merchantInfo[0].merchant_name}`, //เปลี่ยน
+                              size: "md",
+                              color: "#666666",
+                              align: "end",
+                              wrap: true,
+                              contents: [],
+                            },
+                          ],
+                        },
+                        {
+                          type: "box",
+                          layout: "baseline",
+                          spacing: "sm",
+                          contents: [
+                            {
+                              type: "text",
+                              text: "สาขา",
+                              size: "md",
+                              color: "#AAAAAA",
+                              flex: 1,
+                              contents: [],
+                            },
+                            {
+                              type: "text",
+                              text: `${branchInfo[0].branch_name}`, //เปลี่ยน
+                              size: "md",
+                              color: "#666666",
+                              align: "end",
+                              wrap: true,
+                              contents: [],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        }),
+      };
+      request(options, function (error, response) {
+        if (error) throw new Error(error);
+        console.log(response.body);
+      });
+
+      return functions.responseJson(res, data);
+    }
+  } catch (error) {
+    console.log(error);
     var data = {
       status: "error",
       errorMessage: "Conflict",

@@ -2,12 +2,12 @@ const db = require('../model/dbConnection');
 
 exports.addPrize = (prize) => {
     return new Promise((resolve, reject) => {
-        db.query("INSERT INTO Prize (prize_name, prize_detail, prize_pointCost, branch_id) VALUES (?,?,?,?)", 
+        db.query("INSERT INTO Prize (prize_name, prize_detail, prize_pointCost, merchant_id) VALUES (?,?,?,?)", 
         [
             prize.prizeName, 
             prize.prizeDetail, 
             prize.prizePointCost, 
-            prize.branchId
+            prize.merchantId
         ], (err, result) => {
             if (err) reject(err)
             resolve(result)
@@ -27,11 +27,11 @@ exports.getPrizeById = (prizeId) => {
     })
 }
 
-exports.getPrizeByBranchId = (branchId) => {
+exports.getPrizeByMerchantId = (merchantId) => {
     return new Promise((resolve, reject) => {
-        db.query("SELECT * FROM Prize where branch_id = ?", 
+        db.query("SELECT * FROM Prize where merchant_id = ?", 
         [
-            branchId
+            merchantId
         ], (err, result) => {
             if (err) reject(err)
             resolve(result)

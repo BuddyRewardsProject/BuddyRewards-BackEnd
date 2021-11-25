@@ -18,6 +18,25 @@ exports.addPoint = (point) => {
     })
 }
 
+exports.addPointRedeem = (point) => {
+    return new Promise((resolve, reject) => {
+        db.query("INSERT INTO Point (point_id, point, point_status, time_stamp, branch_id, customer_id, staff_id, prize_id) VALUES (?,?,?,?,?,?,?,?)",
+            [
+                point.pointId,
+                point.point,
+                point.pointStatus,
+                point.timeStamp,
+                point.branchId,
+                point.customerId,
+                point.staffId,
+                point.prizeId
+            ], (err, result) => {
+                if (err) reject(err)
+                resolve(result)
+            });
+    })
+}
+
 exports.getPointByCustomerId = (customerId) => {
     return new Promise((resolve, reject) => {
         db.query("SELECT * FROM Point where customer_id = ?",
