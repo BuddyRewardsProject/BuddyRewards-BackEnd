@@ -490,6 +490,7 @@ app.post(
           customerLastName: user[0].last_name,
           customerEmail: user[0].email,
           customerDOB: moment(user[0].date_of_birth).format("DD/MM/YYYY"),
+          pictureUrl: user[0].picture_url,
         };
         var data = {
           status: "success",
@@ -553,7 +554,7 @@ app.post("/merchant/v1/addPoint", authenticatePinToken, async (req, res) => {
   var pointData = {
     point: rewardData.point,
     pointStatus: "reward",
-    timeStamp: moment().tz("Asia/Bangkok").format(),
+    timeStamp: moment().format(),
     branchId: decode.branchId,
     customerId: rewardData.customerId,
     staffId: decode.staffId,
