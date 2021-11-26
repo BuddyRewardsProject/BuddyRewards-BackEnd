@@ -1048,7 +1048,6 @@ app.post(
   async (req, res) => {
     var branchId = req.body.branchId;
     var pointList = await point.getPointHistory(branchId);
-
     var data = {
       status: "sucess",
       pointList: pointList,
@@ -1058,17 +1057,13 @@ app.post(
 );
 
 app.post("/merchant/v1/myMember", async (req, res) => {
-  
-  
-  console.log(req.body.token);
   var decode = jwt.decode(req.body.token);
-console.log(decode)
-var customerList = await member.getTotalPointByMerchantId(decode.merchantId);
+  var customerList = await member.getTotalPointByMerchantId(decode.merchantId);
   var data = {
     status: "sucess",
     customerList: customerList,
   };
-  
+
   return functions.responseJson(res, data);
 });
 
@@ -1095,22 +1090,21 @@ app.post("/customer/v1/merchantdata", async (req, res) => {
   var merchantWithPoint = []
 
   console.log(customerId)
-  var merchantName  = await customer.getAllMerchantNamebyCustomerId(customerId);
+  var merchantName = await customer.getAllMerchantNamebyCustomerId(customerId);
   //
   //console.log(merchantName)
-  merchantName.forEach (async(value, index) => 
-  { 
-    
-    var merchantPoint = await point.getCustomerPointByMerchantId(value.merchant_id,customerId);
+  merchantName.forEach(async (value, index) => {
+
+    var merchantPoint = await point.getCustomerPointByMerchantId(value.merchant_id, customerId);
     var merchant = {
-      merchantId : value.merchant_id,
-      merchantName : value.merchant_name,
-      TotalPoint : merchantPoint[0].totalPoint
+      merchantId: value.merchant_id,
+      merchantName: value.merchant_name,
+      TotalPoint: merchantPoint[0].totalPoint
     }
-   // console.log(merchant)
+    // console.log(merchant)
     merchantWithPoint.push(merchant)
     console.log(merchantWithPoint)
-    if(merchantName.length -1 === index){
+    if (merchantName.length - 1 === index) {
       var data = {
         status: "sucess",
         merchantInfo: merchantWithPoint
@@ -1118,12 +1112,12 @@ app.post("/customer/v1/merchantdata", async (req, res) => {
       return functions.responseJson(res, data);
     }
   })
- 
 
 
- 
 
-  
+
+
+
 });
 //-----------------------merchantDetail--------------------
 
