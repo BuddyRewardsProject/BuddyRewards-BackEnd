@@ -489,7 +489,8 @@ app.post(
           customerPhone: user[0].phone,
           customerLastName: user[0].last_name,
           customerEmail: user[0].email,
-          customerDOB: moment(user[0].date_of_birth).format("DD/MM/YYYY")
+          customerDOB: moment(user[0].date_of_birth).format("DD/MM/YYYY"),
+          customerPic: user[0].picture_url // รูปไลน์ จาก DB 
         };
         var data = {
           status: "success",
@@ -1124,6 +1125,43 @@ app.post("/customer/v1/merchantdata", async (req, res) => {
 
   
 });
+//-----------------------merchantDetail--------------------
+
+app.post("/customer/v1/merchantDetail", async (req, res) => {
+  var merchantId = req.body.merchantId;
+ var customerId = req.body.customerId;
+
+ var TotalPointOfMerchantId = await point.getCustomerPointByMerchantId(merchantId,customerId);
+ var merchantInfo = await merchant.getMerchantBycustomerId(merchantId);
+ var prizeInfo = await prize.getPrizeByMerchantId(merchantId);
+ 
+  var merchantInfo = {
+    merchantId : merchantInfo[0].merchant_id,
+    merchantName : merchantInfo[0].merchant_name,
+    TotalPoint : TotalPointOfMerchantId[0].totalPoint
+  }
+
+
+  
+ 
+  // console.log("<----------XXXXXXXXXXXXXXXX")
+  // console.log(merchantInfo,"<----------merchantInfo")
+  // console.log(merchantInfo.merchantName,"<----------merchantName")
+  // console.log(merchantInfo.TotalPoint,"<----------TotalPoint")
+
+
+  var data = {
+    status: "sucess",
+    merchantInfo: merchantInfo,
+    prizeInfo: prizeInfo
+  };
+
+  return functions.responseJson(res, data);
+
+});
+
+
+
 
 //-------------------------------------------- Customer -----------------------------------------
 
