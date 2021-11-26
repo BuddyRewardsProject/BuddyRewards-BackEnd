@@ -1,69 +1,78 @@
-const db = require('../model/dbConnection');
+const db = require("../model/dbConnection");
 
 exports.addPoint = (point) => {
-    return new Promise((resolve, reject) => {
-        db.query("INSERT INTO Point (point_id, point, point_status, time_stamp, branch_id, customer_id, staff_id) VALUES (?,?,?,?,?,?,?)",
-            [
-                point.pointId,
-                point.point,
-                point.pointStatus,
-                point.timeStamp,
-                point.branchId,
-                point.customerId,
-                point.staffId
-            ], (err, result) => {
-                if (err) reject(err)
-                resolve(result)
-            });
-    })
-}
+  return new Promise((resolve, reject) => {
+    db.query(
+      "INSERT INTO Point (point_id, point, point_status, time_stamp, branch_id, customer_id, staff_id) VALUES (?,?,?,?,?,?,?)",
+      [
+        point.pointId,
+        point.point,
+        point.pointStatus,
+        point.timeStamp,
+        point.branchId,
+        point.customerId,
+        point.staffId,
+      ],
+      (err, result) => {
+        if (err) reject(err);
+        resolve(result);
+      }
+    );
+  });
+};
 
 exports.addPointRedeem = (point) => {
-    return new Promise((resolve, reject) => {
-        db.query("INSERT INTO Point (point_id, point, point_status, time_stamp, branch_id, customer_id, staff_id, prize_id) VALUES (?,?,?,?,?,?,?,?)",
-            [
-                point.pointId,
-                point.point,
-                point.pointStatus,
-                point.timeStamp,
-                point.branchId,
-                point.customerId,
-                point.staffId,
-                point.prizeId
-            ], (err, result) => {
-                if (err) reject(err)
-                resolve(result)
-            });
-    })
-}
+  return new Promise((resolve, reject) => {
+    db.query(
+      "INSERT INTO Point (point_id, point, point_status, time_stamp, branch_id, customer_id, staff_id, prize_id) VALUES (?,?,?,?,?,?,?,?)",
+      [
+        point.pointId,
+        point.point,
+        point.pointStatus,
+        point.timeStamp,
+        point.branchId,
+        point.customerId,
+        point.staffId,
+        point.prizeId,
+      ],
+      (err, result) => {
+        if (err) reject(err);
+        resolve(result);
+      }
+    );
+  });
+};
 
 exports.getPointByCustomerId = (customerId) => {
-    return new Promise((resolve, reject) => {
-        db.query("SELECT * FROM Point where customer_id = ?",
-            [
-                customerId
-            ], (err, result) => {
-                if (err) reject(err)
-                resolve(result)
-            });
-    })
-}
+  return new Promise((resolve, reject) => {
+    db.query(
+      "SELECT * FROM Point where customer_id = ?",
+      [customerId],
+      (err, result) => {
+        if (err) reject(err);
+        resolve(result);
+      }
+    );
+  });
+};
 
 exports.getPointByBranchId = () => {
-    return new Promise((resolve, reject) => {
-        db.query("SELECT * FROM Point where branch_id = ?",
-            [
-                branchId
-            ], (err, result) => {
-                if (err) reject(err)
-                resolve(result)
-            });
-    })
-}
+  return new Promise((resolve, reject) => {
+    db.query(
+      "SELECT * FROM Point where branch_id = ?",
+      [branchId],
+      (err, result) => {
+        if (err) reject(err);
+        resolve(result);
+      }
+    );
+  });
+};
 
 exports.getTotalPoint = (totalPoint) => {
-    return new Promise((resolve, reject) => {
-        db.query(`
+  return new Promise((resolve, reject) => {
+    db.query(
+      `
         SELECT reward - redeem as result
         FROM (SELECT SUM(point) as reward
               FROM Point p left join Branch b on p.branch_id = b.branch_id
@@ -71,17 +80,19 @@ exports.getTotalPoint = (totalPoint) => {
              (SELECT ifnull(SUM(point),0) as redeem
               FROM Point p right join Branch b on p.branch_id = b.branch_id
              WHERE p.customer_id = ? and p.point_status = 'redeem' and b.merchant_id = ?) as b`,
-            [
-                totalPoint.customerId,
-                totalPoint.merchantId,
-                totalPoint.customerId,
-                totalPoint.merchantId
-            ], (err, result) => {
-                if (err) reject(err)
-                resolve(result)
-            });
-    })
-}
+      [
+        totalPoint.customerId,
+        totalPoint.merchantId,
+        totalPoint.customerId,
+        totalPoint.merchantId,
+      ],
+      (err, result) => {
+        if (err) reject(err);
+        resolve(result);
+      }
+    );
+  });
+};
 
 exports.getPointHistory = (branchId) => {
     return new Promise((resolve, reject) => {
@@ -101,25 +112,26 @@ exports.getPointHistory = (branchId) => {
 }
 
 exports.getTotalPointTwo = (merchantId) => {
-    return new Promise((resolve, reject) => {
-        db.query(`
+  return new Promise((resolve, reject) => {
+    db.query(
+      `
         select *
             from Point p
             join Customer c on p.customer_id = c.customer_id
             join Branch b on b.branch_id = p.branch_id
-            where b.merchant_id = ? order by p.time_stamp desc;`
-        [
-            merchantId
-        ], (err, result) => {
-            if (err) reject(err)
-            resolve(result)
-        });
-    })
-}
+            where b.merchant_id = ? order by p.time_stamp desc;`[merchantId],
+      (err, result) => {
+        if (err) reject(err);
+        resolve(result);
+      }
+    );
+  });
+};
 
-exports.getCustomerPointByMerchantId = (merchantId,customerId) => {
-    return new Promise((resolve, reject) => {
-        db.query(`
+exports.getCustomerPointByMerchantId = (merchantId, customerId) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      `
         SELECT IFNULL((SELECT  reward - redeem
             FROM (SELECT SUM(point) as reward
                   FROM Point p left join Branch b on p.branch_id = b.branch_id
@@ -129,14 +141,34 @@ exports.getCustomerPointByMerchantId = (merchantId,customerId) => {
                  WHERE customer_id = c.customer_id and p.point_status = 'redeem' and b.merchant_id = ?) as b) ,0)
                 as totalPoint FROM Customer c where customer_id = ?
         `,
-        [
-            merchantId,
-            merchantId,
-            customerId
-        ],
-            (err, result) => {
-                if (err) reject(err)
-                resolve(result)
-            });
-    })
-}
+      [merchantId, merchantId, customerId],
+      (err, result) => {
+        if (err) reject(err);
+        resolve(result);
+      }
+    );
+  });
+};
+
+exports.getPointHistoryByMerchantIdAndCustomerId = (merchantId, customerId) => {
+    return new Promise((resolve, reject) => {
+      db.query(
+        `
+        select p.time_stamp, c.customer_id,p.point,p.point_status,b.branch_name
+        from Customer c
+                join Point p on c.customer_id = p.customer_id
+                join Branch b on p.branch_id = b.branch_id
+                join Merchant M on b.merchant_id = M.merchant_id
+
+                where b.merchant_id = ? and c.customer_id = ? order by p.time_stamp DESC
+          `,
+        [merchantId,
+        customerId],
+        (err, result) => {
+          if (err) reject(err);
+          resolve(result);
+        }
+      );
+    });
+  };
+  

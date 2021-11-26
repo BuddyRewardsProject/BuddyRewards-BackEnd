@@ -1155,6 +1155,41 @@ app.post("/customer/v1/merchantDetail", async (req, res) => {
 });
 
 
+//-----------------------DetailHistory--------------------
+
+app.post("/customer/v1/detailHistory", async (req, res) => {
+  var merchantId = req.body.merchantId;
+ var customerId = req.body.customerId;
+ var TotalPointOfMerchantId = await point.getPointHistoryByMerchantIdAndCustomerId(merchantId,customerId);
+ //var TotalPointOfMerchantId = await point.getCustomerPointByMerchantId(merchantId,customerId);
+ //var merchantInfo = await merchant.getMerchantBycustomerId(merchantId);
+ console.log(TotalPointOfMerchantId)
+ 
+  // var merchantInfo = {
+  //   merchantId : merchantInfo[0].merchant_id,
+  //   merchantName : merchantInfo[0].merchant_name,
+  //   TotalPoint : TotalPointOfMerchantId[0].totalPoint
+  // }
+
+
+  
+ 
+  // console.log("<----------XXXXXXXXXXXXXXXX")
+  // console.log(merchantInfo,"<----------merchantInfo")
+  // console.log(merchantInfo.merchantName,"<----------merchantName")
+  // console.log(merchantInfo.TotalPoint,"<----------TotalPoint")
+
+
+  var data = {
+    status: "sucess",
+    historyList: TotalPointOfMerchantId
+  };
+
+  return functions.responseJson(res, data);
+
+});
+
+
 
 
 //-------------------------------------------- Customer -----------------------------------------
