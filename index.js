@@ -1242,12 +1242,13 @@ console.log(registerData)
   request(options, async function (error, response) {
     if (error) throw new Error(error);
     var user = JSON.parse(response.body);
+    var email = "emaildemo"
     var customerInfo = {
       customerId: generate,
       customerFirstName: registerData.customerFirstName,
       customerLastName: registerData.customerLastName,
       customerNickName: registerData.customerNickName,
-      customerEmail: "email",
+      customerEmail: email,
       customerPassword: "password",
       customerPhone: registerData.customerPhone,
       customerGender: registerData.customerGender,
@@ -1258,7 +1259,7 @@ console.log(registerData)
 
     try {
       var customerState = await customer.addCustomer(customerInfo); //console.log(customerState)
-
+      
       if (customerState.affectedRows === 1) {
         var data = {
           status: "success",
@@ -1269,6 +1270,7 @@ console.log(registerData)
       var data = {
         status: "error",
         errorMessage: "unsuccessAddCustomer",
+        info: customerInfo
       };
       return functions.responseJson(res, data);
     }
