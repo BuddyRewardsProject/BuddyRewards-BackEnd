@@ -1217,10 +1217,10 @@ app.get("/customer/v1/accCheck", async (req, res) => {
 app.post("/customer/v1/register", async (req, res) => {
   var registerData = req.body.data;
   var generate = Math.round(new Date().getTime() / 1000);
-  var hash = crypto.createHmac("sha512", process.env.SECRET_KEY);
-  hash.update(registerData.customerPassword);
-  var hasedPassword = hash.digest("hex");
-
+  //var hash = crypto.createHmac("sha512", process.env.SECRET_KEY);
+  //hash.update(registerData.customerPassword);
+  //var hasedPassword = hash.digest("hex");
+console.log(registerData)
   if (registerData === "") {
     //Null check
     var data = {
@@ -1247,8 +1247,8 @@ app.post("/customer/v1/register", async (req, res) => {
       customerFirstName: registerData.customerFirstName,
       customerLastName: registerData.customerLastName,
       customerNickName: registerData.customerNickName,
-      customerEmail: registerData.customerEmail,
-      customerPassword: hasedPassword,
+      customerEmail: "email",
+      customerPassword: "password",
       customerPhone: registerData.customerPhone,
       customerGender: registerData.customerGender,
       customerDOB: registerData.customerDOB,
@@ -1302,6 +1302,7 @@ app.post("/customer/v1/liff", async (req, res) => {
       customerLastName: result[0].last_name,
       customerNickName: result[0].nick_name,
       customerEmail: result[0].email,
+      customerPassword: result[0].password,
       customerPhone: result[0].phone,
       customerGender: result[0].gender,
       customerDOB: result[0].date_of_birth,
@@ -1335,6 +1336,7 @@ app.post("/customer/v1/login", async (req, res) => {
       customerLastName: result[0].last_name,
       customerNickName: result[0].nick_name,
       customerEmail: result[0].email,
+      customerPassword: result[0].password,
       customerPhone: result[0].phone,
       customerGender: result[0].gender,
       customerDOB: result[0].date_of_birth,

@@ -154,11 +154,12 @@ exports.getPointHistoryByMerchantIdAndCustomerId = (merchantId, customerId) => {
     return new Promise((resolve, reject) => {
       db.query(
         `
-        select p.time_stamp, c.customer_id,p.point,p.point_status,b.branch_name
+        select p.time_stamp, c.customer_id,p.point,p.point_status,b.branch_name,F.divider
         from Customer c
                 join Point p on c.customer_id = p.customer_id
                 join Branch b on p.branch_id = b.branch_id
                 join Merchant M on b.merchant_id = M.merchant_id
+                join Formula F on M.formula_id = F.formula_id
 
                 where b.merchant_id = ? and c.customer_id = ? order by p.time_stamp DESC
           `,
