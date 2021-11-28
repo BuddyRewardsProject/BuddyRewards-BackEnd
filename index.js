@@ -1088,20 +1088,14 @@ app.post("/customer/v1/home", authenticateCustomerToken, async (req, res) => {
 app.post("/customer/v1/merchantdata", async (req, res) => {
   var customerId = req.body.customerId;
   var merchantWithPoint = []
-
-  console.log(customerId)
   var merchantName = await customer.getAllMerchantNamebyCustomerId(customerId);
-  //
-  //console.log(merchantName)
   merchantName.forEach(async (value, index) => {
-
     var merchantPoint = await point.getCustomerPointByMerchantId(value.merchant_id, customerId);
     var merchant = {
       merchantId: value.merchant_id,
       merchantName: value.merchant_name,
       TotalPoint: merchantPoint[0].totalPoint
     }
-    // console.log(merchant)
     merchantWithPoint.push(merchant)
     console.log(merchantWithPoint)
     if (merchantName.length - 1 === index) {
@@ -1112,37 +1106,23 @@ app.post("/customer/v1/merchantdata", async (req, res) => {
       return functions.responseJson(res, data);
     }
   })
-
-
-
-
-
-
 });
+
 //-----------------------merchantDetail--------------------
 
 app.post("/customer/v1/merchantDetail", async (req, res) => {
   var merchantId = req.body.merchantId;
- var customerId = req.body.customerId;
+  var customerId = req.body.customerId;
 
- var TotalPointOfMerchantId = await point.getCustomerPointByMerchantId(merchantId,customerId);
- var merchantInfo = await merchant.getMerchantBycustomerId(merchantId);
- var prizeInfo = await prize.getPrizeByMerchantId(merchantId);
- 
+  var TotalPointOfMerchantId = await point.getCustomerPointByMerchantId(merchantId, customerId);
+  var merchantInfo = await merchant.getMerchantBycustomerId(merchantId);
+  var prizeInfo = await prize.getPrizeByMerchantId(merchantId);
+
   var merchantInfo = {
-    merchantId : merchantInfo[0].merchant_id,
-    merchantName : merchantInfo[0].merchant_name,
-    TotalPoint : TotalPointOfMerchantId[0].totalPoint
+    merchantId: merchantInfo[0].merchant_id,
+    merchantName: merchantInfo[0].merchant_name,
+    TotalPoint: TotalPointOfMerchantId[0].totalPoint
   }
-
-
-  
- 
-  // console.log("<----------XXXXXXXXXXXXXXXX")
-  // console.log(merchantInfo,"<----------merchantInfo")
-  // console.log(merchantInfo.merchantName,"<----------merchantName")
-  // console.log(merchantInfo.TotalPoint,"<----------TotalPoint")
-
 
   var data = {
     status: "sucess",
@@ -1151,34 +1131,14 @@ app.post("/customer/v1/merchantDetail", async (req, res) => {
   };
 
   return functions.responseJson(res, data);
-
 });
-
 
 //-----------------------DetailHistory--------------------
 
 app.post("/customer/v1/detailHistory", async (req, res) => {
   var merchantId = req.body.merchantId;
- var customerId = req.body.customerId;
- var TotalPointOfMerchantId = await point.getPointHistoryByMerchantIdAndCustomerId(merchantId,customerId);
- //var TotalPointOfMerchantId = await point.getCustomerPointByMerchantId(merchantId,customerId);
- //var merchantInfo = await merchant.getMerchantBycustomerId(merchantId);
- console.log(TotalPointOfMerchantId)
- 
-  // var merchantInfo = {
-  //   merchantId : merchantInfo[0].merchant_id,
-  //   merchantName : merchantInfo[0].merchant_name,
-  //   TotalPoint : TotalPointOfMerchantId[0].totalPoint
-  // }
-
-
-  
- 
-  // console.log("<----------XXXXXXXXXXXXXXXX")
-  // console.log(merchantInfo,"<----------merchantInfo")
-  // console.log(merchantInfo.merchantName,"<----------merchantName")
-  // console.log(merchantInfo.TotalPoint,"<----------TotalPoint")
-
+  var customerId = req.body.customerId;
+  var TotalPointOfMerchantId = await point.getPointHistoryByMerchantIdAndCustomerId(merchantId, customerId);
 
   var data = {
     status: "sucess",
@@ -1188,8 +1148,6 @@ app.post("/customer/v1/detailHistory", async (req, res) => {
   return functions.responseJson(res, data);
 
 });
-
-
 
 
 //-------------------------------------------- Customer -----------------------------------------
@@ -1217,10 +1175,7 @@ app.get("/customer/v1/accCheck", async (req, res) => {
 app.post("/customer/v1/register", async (req, res) => {
   var registerData = req.body.data;
   var generate = Math.round(new Date().getTime() / 1000);
-  //var hash = crypto.createHmac("sha512", process.env.SECRET_KEY);
-  //hash.update(registerData.customerPassword);
-  //var hasedPassword = hash.digest("hex");
-console.log(registerData)
+
   if (registerData === "") {
     //Null check
     var data = {
@@ -1230,7 +1185,6 @@ console.log(registerData)
     return functions.responseJson(res, data);
   }
   var token = registerData.customerToken;
-  //console.log(token)
 
   var options = {
     method: "GET",
@@ -1259,7 +1213,7 @@ console.log(registerData)
 
     try {
       var customerState = await customer.addCustomer(customerInfo); //console.log(customerState)
-      
+
       if (customerState.affectedRows === 1) {
         var data = {
           status: "success",
